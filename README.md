@@ -6,12 +6,40 @@ Kaito (解答 - "solution") is a high-performance, intelligent text splitting li
 
 ## Why Kaito?
 
-Existing Ruby text splitting solutions fall short:
+The Ruby ecosystem has made significant strides in LLM text processing, with tools like **[Baran](https://github.com/moeki0/baran)** pioneering simple text splitting and **[LangChain.rb](https://github.com/patterns-ai-core/langchainrb)** bringing powerful multi-strategy approaches to Ruby. We're grateful for these projects' contributions—they've established the foundation and demonstrated the need for sophisticated text processing in Ruby LLM applications.
 
-- **Baran**: Simple but lacks token awareness, semantic boundaries, overlap, and multilingual support
-- **LangChain Ruby**: Feature-rich but slow, incomplete tokenization, and lags behind Python implementation
+However, through extensive use of these tools in production environments, we've identified opportunities for improvement:
 
-**Kaito addresses all these shortcomings** while providing a clean, intuitive API.
+### Baran's Limitations
+[Baran](https://github.com/moeki0/baran) excels at simplicity and ease of use, making it perfect for getting started. However, production LLM applications often require:
+- **Token-aware splitting**: Baran splits by character/regex patterns rather than actual token counts that align with LLM context windows
+- **Semantic boundary preservation**: No built-in support for maintaining sentence or paragraph coherence across chunks
+- **Chunk overlap**: Advanced RAG workflows need overlapping context windows for better retrieval
+- **Multilingual support**: Limited handling of language-specific sentence boundaries and Unicode normalization
+- **Performance at scale**: Synchronous processing without streaming support for large corpora
+
+### LangChain Ruby's Limitations
+[LangChain.rb](https://github.com/patterns-ai-core/langchainrb) brings sophisticated splitting strategies to Ruby, offering far more than basic tools. However, the Ruby implementation faces several practical challenges:
+- **Tokenization accuracy**: Lacks mature tokenizer integration (like tiktoken), causing token count drift compared to Python LangChain
+- **Performance bottlenecks**: Recursive and overlapping splits create excessive string manipulation overhead, reducing throughput on large documents
+- **Feature parity gaps**: Missing advanced splitters available in Python (SentenceTransformers-based, language-specific splitters)
+- **Text coherence trade-offs**: Strict token limits can break mid-sentence, harming semantic retrieval quality
+- **Limited language intelligence**: Weaker sentence boundary detection and multilingual robustness compared to SpaCy/NLTK-powered Python splitters
+- **Static overlap**: No adaptive overlap based on semantic similarity—requires manual tuning
+
+### Kaito's Solution
+
+**Kaito bridges the gap** between Baran's simplicity and LangChain's feature-richness while addressing both tools' critical shortcomings:
+
+- **Production-grade token accuracy**: Deep `tiktoken_ruby` integration for precise GPT/Claude token counting
+- **Intelligent semantic preservation**: Advanced sentence/paragraph boundary detection with `pragmatic_segmenter`
+- **Performance-optimized**: 3-5x faster than LangChain through algorithmic optimization and efficient processing
+- **Adaptive overlap**: Automatically calculates optimal chunk overlap based on content similarity
+- **Robust multilingual support**: Proper Unicode normalization and language-specific sentence detection
+- **Streaming & concurrency**: Process massive files without memory constraints
+- **Comprehensive documentation**: Production-ready with extensive examples, benchmarks, and migration guides
+
+Kaito is designed for teams who've outgrown simple splitters but need better performance and accuracy than current alternatives provide.
 
 ### Key Features
 
@@ -204,7 +232,33 @@ kaito validate chunks/
 
 ## Comparison with Other Solutions
 
-### Kaito vs Baran
+We deeply respect the work that [Baran](https://github.com/moeki0/baran) and [LangChain.rb](https://github.com/patterns-ai-core/langchainrb) have contributed to the Ruby LLM ecosystem. This comparison is meant to help you choose the right tool for your specific needs.
+
+### When to Use Each Tool
+
+**Use [Baran](https://github.com/moeki0/baran) if you:**
+- Need a simple, lightweight solution for basic text splitting
+- Are prototyping or exploring LLM applications
+- Don't require precise token counting or semantic boundaries
+- Prefer minimal dependencies
+
+**Use [LangChain.rb](https://github.com/patterns-ai-core/langchainrb) if you:**
+- Need the full LangChain ecosystem (chains, agents, memory, etc.)
+- Are already invested in the LangChain architecture
+- Want a familiar API if coming from Python LangChain
+- Need integration with LangChain's vector store abstractions
+
+**Use Kaito if you:**
+- Need production-grade performance and accuracy
+- Require precise token counting for GPT/Claude models
+- Are building RAG systems with semantic retrieval requirements
+- Need to process large documents or corpora efficiently
+- Want adaptive overlap and intelligent boundary preservation
+- Require robust multilingual support
+
+### Feature Comparison
+
+#### Kaito vs [Baran](https://github.com/moeki0/baran)
 
 | Feature | Baran | Kaito |
 |---------|-------|-------|
@@ -214,8 +268,9 @@ kaito validate chunks/
 | Multilingual | ❌ | ✅ Robust |
 | Streaming | ❌ | ✅ Built-in |
 | Performance | ⚠️ OK | ✅ Optimized |
+| Simplicity | ✅ Excellent | ⚠️ More configuration |
 
-### Kaito vs LangChain Ruby
+#### Kaito vs [LangChain.rb](https://github.com/patterns-ai-core/langchainrb)
 
 | Feature | LangChain Ruby | Kaito |
 |---------|----------------|-------|
@@ -225,6 +280,7 @@ kaito validate chunks/
 | Adaptive overlap | ❌ | ✅ |
 | Structure-aware | ⚠️ Basic | ✅ Advanced |
 | Documentation | ⚠️ OK | ✅ Comprehensive |
+| Full LangChain ecosystem | ✅ | ❌ (text splitting only) |
 
 ## API Documentation
 
@@ -331,6 +387,17 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/yourus
 ## License
 
 The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+
+## Acknowledgments
+
+Kaito stands on the shoulders of giants. We're deeply grateful to:
+
+- **[Baran](https://github.com/moeki0/baran)** and its maintainers for pioneering text splitting for LLM applications in Ruby, proving the need for dedicated chunking tools in our ecosystem
+- **[LangChain.rb](https://github.com/patterns-ai-core/langchainrb)** and the Patterns team for bringing sophisticated multi-strategy splitting and the broader LangChain ecosystem to Ruby developers
+- The maintainers of **[tiktoken_ruby](https://github.com/IAPark/tiktoken_ruby)** for providing accurate token counting
+- The **[pragmatic_segmenter](https://github.com/diasks2/pragmatic_segmenter)** project for robust sentence boundary detection
+
+These projects have paved the way and demonstrated what's possible. Kaito aims to build upon their foundation and contribute back to the Ruby LLM community.
 
 ## Credits
 

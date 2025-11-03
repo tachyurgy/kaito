@@ -5,8 +5,8 @@ require_relative "lib/kaito/version"
 Gem::Specification.new do |spec|
   spec.name = "kaito"
   spec.version = Kaito::VERSION
-  spec.authors = ["Magnus Fremont"]
-  spec.email = ["your.email@example.com"] # TODO: Update with your email
+  spec.authors = ["Code Railroad"]
+  spec.email = ["coderailroad@gmail.com"]
 
   spec.summary = "Production-grade text splitting for LLM applications"
   spec.description = <<~DESC
@@ -15,7 +15,7 @@ Gem::Specification.new do |spec|
     multilingual support, and streaming capabilities that surpass existing solutions like Baran
     and LangChain.
   DESC
-  spec.homepage = "https://github.com/yourusername/kaito" # TODO: Update with your GitHub username
+  spec.homepage = "https://github.com/codeRailroad/kaito"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.0.0"
 
