@@ -58,11 +58,11 @@ module Kaito
           # Calculate optimal overlap
           overlap_text = calculate_optimal_overlap(prev_chunk.text, current_chunk.text)
 
-          # Create new chunk with overlap prepended
-          new_text = overlap_text.empty? ? current_chunk.text : "#{overlap_text} #{current_chunk.text}"
+          # Ensure combined text doesn't exceed max_tokens
+          new_text, actual_overlap = enforce_max_tokens(overlap_text, current_chunk.text)
 
           metadata = current_chunk.metadata.merge(
-            overlap_tokens: tokenizer.count(overlap_text),
+            overlap_tokens: tokenizer.count(actual_overlap),
             adaptive_overlap: true
           )
 
@@ -117,6 +117,75 @@ module Kaito
         end
 
         overlap_sentences.join(" ")
+      end
+
+      def enforce_max_tokens(overlap_text, current_text)
+        # Handle empty overlap
+        if overlap_text.empty?
+          return [current_text, ""]
+        end
+
+        # Calculate combined token count
+        combined_text = "#{overlap_text} #{current_text}"
+        combined_tokens = tokenizer.count(combined_text)
+
+        # If within limits, return as-is
+        if combined_tokens <= max_tokens
+          return [combined_text, overlap_text]
+        end
+
+        # Calculate how many tokens we can use for overlap
+        current_tokens = tokenizer.count(current_text)
+        available_overlap_tokens = max_tokens - current_tokens - 1 # -1 for the space
+
+        # If no room for overlap, return just current text
+        if available_overlap_tokens <= 0
+          return [current_text, ""]
+        end
+
+        # Trim overlap to fit
+        trimmed_overlap = trim_text_to_tokens(overlap_text, available_overlap_tokens)
+        new_text = trimmed_overlap.empty? ? current_text : "#{trimmed_overlap} #{current_text}"
+
+        [new_text, trimmed_overlap]
+      end
+
+      def trim_text_to_tokens(text, target_tokens)
+        # Try to trim by sentences first
+        sentences = segment_into_sentences(text)
+        result = []
+        token_count = 0
+
+        sentences.each do |sentence|
+          sentence_tokens = tokenizer.count(sentence)
+          if token_count + sentence_tokens <= target_tokens
+            result << sentence
+            token_count += sentence_tokens
+          else
+            break
+          end
+        end
+
+        # If we got nothing, do word-level trimming as fallback
+        if result.empty? && target_tokens > 0
+          words = text.split(/\s+/)
+          result = []
+          token_count = 0
+
+          words.each do |word|
+            word_tokens = tokenizer.count(word)
+            if token_count + word_tokens <= target_tokens
+              result << word
+              token_count += word_tokens
+            else
+              break
+            end
+          end
+
+          return result.join(" ")
+        end
+
+        result.join(" ")
       end
 
       def should_include_in_overlap?(sentence, next_text, current_overlap, target_overlap)
