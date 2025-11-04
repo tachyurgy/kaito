@@ -13,11 +13,15 @@ module Kaito
     # Supports GPT-3.5, GPT-4, and other OpenAI models
     class Tiktoken < Base
       # Model to encoding mapping
+      # Note: Claude uses cl100k_base as an APPROXIMATION only.
+      # Anthropic uses a different tokenizer, so counts may not be exact.
+      # For production Claude usage, consider using a character-based fallback
+      # or implementing a proper Claude tokenizer when available.
       MODEL_ENCODINGS = {
         gpt35_turbo: "cl100k_base",
         gpt4: "cl100k_base",
         gpt4_turbo: "cl100k_base",
-        claude: "cl100k_base", # Claude uses similar tokenization
+        claude: "cl100k_base", # APPROXIMATE - Claude has different tokenizer
         text_davinci_003: "p50k_base",
         text_davinci_002: "p50k_base",
         code_davinci_002: "p50k_base"

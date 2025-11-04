@@ -43,7 +43,7 @@ Kaito is designed for teams who've outgrown simple splitters but need better per
 
 ### Key Features
 
-- **Token-Aware Splitting**: Precise token counting with tiktoken_ruby for GPT-3.5, GPT-4, and Claude models
+- **Token-Aware Splitting**: Precise token counting with tiktoken_ruby for GPT-3.5 and GPT-4 models (Claude support is approximate)
 - **Multiple Strategies**: Character, Semantic, Structure-Aware, Adaptive Overlap, and Recursive splitting
 - **Semantic Boundaries**: Preserves sentence and paragraph boundaries using pragmatic_segmenter
 - **Intelligent Overlap**: Adaptive overlap based on content similarity for better context preservation
@@ -155,12 +155,14 @@ text = "Your text here"
 
 gpt4_tokens = Kaito.count_tokens(text, tokenizer: :gpt4)
 gpt35_tokens = Kaito.count_tokens(text, tokenizer: :gpt35_turbo)
-claude_tokens = Kaito.count_tokens(text, tokenizer: :claude)
+claude_tokens = Kaito.count_tokens(text, tokenizer: :claude) # Note: Approximate
 
 puts "GPT-4: #{gpt4_tokens} tokens"
 puts "GPT-3.5: #{gpt35_tokens} tokens"
-puts "Claude: #{claude_tokens} tokens"
+puts "Claude: #{claude_tokens} tokens (approximate)"
 ```
+
+**Note:** Claude tokenization uses cl100k_base as an approximation. Anthropic uses a different tokenizer, so counts may vary by ~5-10%. For production Claude usage, consider using character-based counting or a dedicated Claude tokenizer when available.
 
 ### Global Configuration
 
