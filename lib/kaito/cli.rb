@@ -2,6 +2,7 @@
 
 require "thor"
 require "json"
+require "fileutils"
 
 module Kaito
   # Command-line interface for Kaito
