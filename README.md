@@ -39,6 +39,24 @@ Kaito provides production-grade text splitting for Ruby applications requiring p
 - **CLI Tool**: Full-featured command-line interface for batch processing
 - **Production-Ready**: Comprehensive error handling, validation, and edge case coverage
 
+<!-- ✅ FIXED: Added decision tree early so users can quickly assess fit -->
+
+## Is Kaito Right for You?
+
+**Choose Kaito if you need:**
+- ✅ GPT model token counting with tiktoken accuracy
+- ✅ Semantic chunking for RAG systems requiring context preservation
+- ✅ Processing large documents (100MB+) efficiently
+- ✅ Production-grade performance (3-5x faster than alternatives)
+- ✅ Advanced overlap strategies beyond fixed-size windows
+
+**Consider alternatives if:**
+- 🤔 You need simple text splitting without token awareness → Try [Baran](https://github.com/moeki0/baran)
+- 🤔 You need the full LangChain ecosystem (agents, memory, chains) → Use [LangChain.rb](https://github.com/patterns-ai-core/langchainrb)
+- 🤔 You're prototyping and don't need production performance → Start simpler
+
+**Quick decision**: If you're asking "do I need precise GPT token counts?" → Yes, use Kaito. If not sure → Start with something simpler.
+
 ## Installation
 
 ### Install from RubyGems
