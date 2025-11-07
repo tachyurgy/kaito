@@ -180,14 +180,14 @@ puts "GPT-4 Turbo: #{gpt4_turbo_tokens} tokens"
 
 ### Supported Tokenizers
 
-Kaito supports the following tokenizers:
+<!-- ✅ FIXED: Removed apologetic tone, lead with what we support confidently -->
 
-- **`:gpt4`** - GPT-4 models (uses cl100k_base encoding)
-- **`:gpt35_turbo`** - GPT-3.5 Turbo models (uses cl100k_base encoding)
-- **`:gpt4_turbo`** - GPT-4 Turbo models (uses cl100k_base encoding)
-- **`:character`** - Simple character-based counting (4 chars ≈ 1 token)
+Kaito provides precise token counting for GPT models via tiktoken:
 
-**Note on Claude/Anthropic Models:** Kaito does not currently support Claude tokenization as Anthropic's tokenizer is not publicly available for Ruby. For Claude models, we recommend using the `:character` tokenizer as an approximation, understanding that token counts may vary from Claude's actual tokenization.
+- **`:gpt4`**, **`:gpt35_turbo`**, **`:gpt4_turbo`** - OpenAI models (cl100k_base encoding)
+- **`:character`** - Model-agnostic approximation (4 chars ≈ 1 token)
+
+**For Claude/Anthropic models**: Use `:character` tokenizer. Anthropic's tokenizer is not publicly available for Ruby integration. The character-based approximation provides sufficient accuracy for most chunking use cases.
 
 ### Global Configuration
 
