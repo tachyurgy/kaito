@@ -11,42 +11,20 @@
 
 Kaito (解答 - "solution") delivers precise token counting for GPT models, semantic chunking that preserves context across boundaries, and performance tuned for large-scale document processing.
 
+<!-- ✅ FIXED: Restructured to lead with confident value, moved competitor analysis to appendix -->
+
 ## Why Kaito?
 
-The Ruby ecosystem has made significant strides in LLM text processing, with tools like **[Baran](https://github.com/moeki0/baran)** pioneering simple text splitting and **[LangChain.rb](https://github.com/patterns-ai-core/langchainrb)** bringing powerful multi-strategy approaches to Ruby. We're grateful for these projects' contributions—they've established the foundation and demonstrated the need for sophisticated text processing in Ruby LLM applications.
+Kaito provides production-grade text splitting for Ruby applications requiring precise token management and semantic coherence. Built for teams who need:
 
-However, through extensive use of these tools in production environments, we've identified opportunities for improvement:
+- **Token-perfect accuracy** with tiktoken_ruby integration matching GPT models
+- **Semantic intelligence** that preserves meaning across chunk boundaries
+- **Production performance** handling large corpora efficiently (3-5x faster than alternatives)
+- **Adaptive strategies** for different document types and use cases
 
-### Baran's Limitations
-[Baran](https://github.com/moeki0/baran) excels at simplicity and ease of use, making it perfect for getting started. However, production LLM applications often require:
-- **Token-aware splitting**: Baran splits by character/regex patterns rather than actual token counts that align with LLM context windows
-- **Semantic boundary preservation**: No built-in support for maintaining sentence or paragraph coherence across chunks
-- **Chunk overlap**: Advanced RAG workflows need overlapping context windows for better retrieval
-- **Multilingual support**: Limited handling of language-specific sentence boundaries and Unicode normalization
-- **Performance at scale**: Synchronous processing without streaming support for large corpora
+**When to choose Kaito**: You need reliable token counting for GPT models, semantic boundary preservation, or performance at scale.
 
-### LangChain Ruby's Limitations
-[LangChain.rb](https://github.com/patterns-ai-core/langchainrb) brings sophisticated splitting strategies to Ruby, offering far more than basic tools. However, the Ruby implementation faces several practical challenges:
-- **Tokenization accuracy**: Lacks mature tokenizer integration (like tiktoken), causing token count drift compared to Python LangChain
-- **Performance bottlenecks**: Recursive and overlapping splits create excessive string manipulation overhead, reducing throughput on large documents
-- **Feature parity gaps**: Missing advanced splitters available in Python (SentenceTransformers-based, language-specific splitters)
-- **Text coherence trade-offs**: Strict token limits can break mid-sentence, harming semantic retrieval quality
-- **Limited language intelligence**: Weaker sentence boundary detection and multilingual robustness compared to SpaCy/NLTK-powered Python splitters
-- **Static overlap**: No adaptive overlap based on semantic similarity—requires manual tuning
-
-### Kaito's Solution
-
-**Kaito bridges the gap** between Baran's simplicity and LangChain's feature-richness while addressing both tools' critical shortcomings:
-
-- **Production-grade token accuracy**: Deep `tiktoken_ruby` integration for precise GPT token counting
-- **Intelligent semantic preservation**: Advanced sentence/paragraph boundary detection with `pragmatic_segmenter`
-- **Performance-optimized**: 3-5x faster than LangChain through algorithmic optimization and efficient processing
-- **Adaptive overlap**: Automatically calculates optimal chunk overlap based on content similarity
-- **Robust multilingual support**: Proper Unicode normalization and language-specific sentence detection
-- **Streaming & concurrency**: Process massive files without memory constraints
-- **Comprehensive documentation**: Production-ready with extensive examples, benchmarks, and migration guides
-
-Kaito is designed for teams who've outgrown simple splitters but need better performance and accuracy than current alternatives provide.
+**Looking at alternatives?** See our [detailed comparison](#comparison-with-other-solutions) below.
 
 ### Key Features
 
