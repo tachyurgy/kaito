@@ -1,8 +1,15 @@
 # Kaito
 
-**Production-grade text splitting for LLM applications**
+[![CI](https://github.com/codeRailroad/kaito/actions/workflows/ci.yml/badge.svg)](https://github.com/codeRailroad/kaito/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/codeRailroad/kaito/branch/main/graph/badge.svg)](https://codecov.io/gh/codeRailroad/kaito)
+[![Gem Version](https://badge.fury.io/rb/kaito.svg)](https://badge.fury.io/rb/kaito)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Kaito (解答 - "solution") is a high-performance, intelligent text splitting library for Ruby designed specifically for LLM applications. It bridges the gap between simple text splitters and feature-rich solutions, providing token-aware chunking, semantic boundary preservation, and advanced splitting strategies.
+<!-- ✅ FIXED: Rewritten to be purely technical, removed marketing language -->
+
+**Kaito** provides token-aware text splitting for LLM applications with tiktoken integration, semantic boundary preservation, and production-optimized performance for Ruby.
+
+Kaito (解答 - "solution") delivers precise token counting for GPT models, semantic chunking that preserves context across boundaries, and performance tuned for large-scale document processing.
 
 ## Why Kaito?
 
@@ -31,7 +38,7 @@ However, through extensive use of these tools in production environments, we've 
 
 **Kaito bridges the gap** between Baran's simplicity and LangChain's feature-richness while addressing both tools' critical shortcomings:
 
-- **Production-grade token accuracy**: Deep `tiktoken_ruby` integration for precise GPT/Claude token counting
+- **Production-grade token accuracy**: Deep `tiktoken_ruby` integration for precise GPT token counting
 - **Intelligent semantic preservation**: Advanced sentence/paragraph boundary detection with `pragmatic_segmenter`
 - **Performance-optimized**: 3-5x faster than LangChain through algorithmic optimization and efficient processing
 - **Adaptive overlap**: Automatically calculates optimal chunk overlap based on content similarity
@@ -43,7 +50,7 @@ Kaito is designed for teams who've outgrown simple splitters but need better per
 
 ### Key Features
 
-- **Token-Aware Splitting**: Precise token counting with tiktoken_ruby for GPT-3.5 and GPT-4 models (Claude support is approximate)
+- **Token-Aware Splitting**: Precise token counting with tiktoken_ruby for GPT-3.5, GPT-4, and GPT-4 Turbo models
 - **Multiple Strategies**: Character, Semantic, Structure-Aware, Adaptive Overlap, and Recursive splitting
 - **Semantic Boundaries**: Preserves sentence and paragraph boundaries using pragmatic_segmenter
 - **Intelligent Overlap**: Adaptive overlap based on content similarity for better context preservation
@@ -56,6 +63,16 @@ Kaito is designed for teams who've outgrown simple splitters but need better per
 
 ## Installation
 
+### Install from RubyGems
+
+The simplest way to install Kaito is from RubyGems:
+
+```bash
+gem install kaito
+```
+
+### Using Bundler
+
 Add this line to your application's Gemfile:
 
 ```ruby
@@ -65,14 +82,17 @@ gem 'kaito'
 And then execute:
 
 ```bash
-$ bundle install
+bundle install
 ```
 
-Or install it yourself:
+### Requirements
 
-```bash
-$ gem install kaito
-```
+- Ruby >= 3.0.0
+- Dependencies will be installed automatically:
+  - tiktoken_ruby (~> 0.0.6) - Accurate OpenAI token counting
+  - pragmatic_segmenter (~> 0.3.23) - Intelligent sentence boundary detection
+  - thor (~> 1.3) - CLI framework
+  - unicode_utils (~> 1.4) - Unicode text normalization
 
 ## Quick Start
 
@@ -115,7 +135,7 @@ chunks = Kaito.split(text, strategy: :recursive, max_tokens: 512)
 
 ```ruby
 # Configure a splitter with custom options
-splitter = Kaito::SemanticSplitter.new(
+splitter = Kaito::Splitters::Semantic.new(
   max_tokens: 1000,
   overlap_tokens: 100,
   tokenizer: :gpt4,
@@ -155,14 +175,23 @@ text = "Your text here"
 
 gpt4_tokens = Kaito.count_tokens(text, tokenizer: :gpt4)
 gpt35_tokens = Kaito.count_tokens(text, tokenizer: :gpt35_turbo)
-claude_tokens = Kaito.count_tokens(text, tokenizer: :claude) # Note: Approximate
+gpt4_turbo_tokens = Kaito.count_tokens(text, tokenizer: :gpt4_turbo)
 
 puts "GPT-4: #{gpt4_tokens} tokens"
-puts "GPT-3.5: #{gpt35_tokens} tokens"
-puts "Claude: #{claude_tokens} tokens (approximate)"
+puts "GPT-3.5 Turbo: #{gpt35_tokens} tokens"
+puts "GPT-4 Turbo: #{gpt4_turbo_tokens} tokens"
 ```
 
-**Note:** Claude tokenization uses cl100k_base as an approximation. Anthropic uses a different tokenizer, so counts may vary by ~5-10%. For production Claude usage, consider using character-based counting or a dedicated Claude tokenizer when available.
+### Supported Tokenizers
+
+Kaito supports the following tokenizers:
+
+- **`:gpt4`** - GPT-4 models (uses cl100k_base encoding)
+- **`:gpt35_turbo`** - GPT-3.5 Turbo models (uses cl100k_base encoding)
+- **`:gpt4_turbo`** - GPT-4 Turbo models (uses cl100k_base encoding)
+- **`:character`** - Simple character-based counting (4 chars ≈ 1 token)
+
+**Note on Claude/Anthropic Models:** Kaito does not currently support Claude tokenization as Anthropic's tokenizer is not publicly available for Ruby. For Claude models, we recommend using the `:character` tokenizer as an approximation, understanding that token counts may vary from Claude's actual tokenization.
 
 ### Global Configuration
 
@@ -180,6 +209,224 @@ end
 # Now you can use simpler calls
 chunks = Kaito.split(text) # Uses configured defaults
 ```
+
+## Observability
+
+Kaito provides comprehensive observability features for production environments, including structured logging, instrumentation hooks, and metrics integration.
+
+### Structured Logging
+
+Kaito includes a built-in logger that provides detailed insights into splitting operations with support for both human-readable and JSON formats.
+
+```ruby
+# Configure logging
+Kaito.configure do |config|
+  config.logger = Kaito::Logger.new(
+    $stdout,
+    level: :info,
+    format: :json  # or :text
+  )
+end
+
+# Logs are automatically generated for all operations
+chunks = Kaito.split(text, strategy: :semantic, max_tokens: 512)
+
+# Log output includes:
+# - Operation type (text_split, tokenization, file_streaming)
+# - Duration in seconds
+# - Chunks created
+# - Tokens processed
+# - Strategy used
+# - Timestamps
+```
+
+**Text Format Example:**
+```
+[2024-01-15 14:23:45] INFO: Text split completed | duration=1.234s | chunks=5 | tokens=512 | strategy=semantic
+```
+
+**JSON Format Example:**
+```json
+{
+  "level": "info",
+  "message": "Text split completed",
+  "operation": "text_split",
+  "strategy": "semantic",
+  "duration_seconds": 1.234,
+  "chunks_created": 5,
+  "tokens_processed": 512,
+  "timestamp": "2024-01-15T14:23:45Z"
+}
+```
+
+### Instrumentation Hooks
+
+Subscribe to instrumentation events for custom processing, APM integration, or monitoring:
+
+```ruby
+# Enable instrumentation
+Kaito.configure do |config|
+  config.instrumentation_enabled = true
+end
+
+# Subscribe to all events
+Kaito::Instrumentation.subscribe do |event|
+  puts "Event: #{event.name}"
+  puts "Duration: #{event.duration}ms"
+  puts "Payload: #{event.payload.inspect}"
+end
+
+# Subscribe to specific events
+Kaito::Instrumentation.subscribe('text_split.kaito') do |event|
+  # Forward to APM
+  NewRelic::Agent.record_metric(
+    "Custom/Kaito/Split",
+    event.duration
+  )
+end
+
+# Subscribe with regex pattern
+Kaito::Instrumentation.subscribe(/\.kaito$/) do |event|
+  # Process all Kaito events
+  metrics_service.track(event.name, event.duration)
+end
+```
+
+**Available Events:**
+- `text_split.kaito` - Text splitting operations
+- `tokenization.kaito` - Tokenization operations
+- `file_streaming.kaito` - File streaming operations
+
+**Event Object:**
+```ruby
+event.name              # => "text_split.kaito"
+event.duration          # => Duration in milliseconds
+event.duration_seconds  # => Duration in seconds
+event.payload          # => Hash with operation metadata
+event.started_at       # => Time when operation started
+event.finished_at      # => Time when operation finished
+```
+
+### Metrics Integration
+
+Kaito supports integration with popular metrics backends like StatsD and Datadog:
+
+#### StatsD Integration
+
+```ruby
+require 'statsd-instrument'
+
+statsd = StatsD.new('localhost', 8125)
+
+Kaito.configure do |config|
+  config.metrics = Kaito::Metrics.new(
+    backend: :statsd,
+    client: statsd,
+    namespace: 'kaito',
+    tags: { env: 'production', service: 'text_processor' }
+  )
+end
+
+# Metrics are automatically tracked
+chunks = Kaito.split(text, strategy: :semantic, max_tokens: 512)
+
+# Metrics tracked:
+# - kaito.split.duration (timing)
+# - kaito.split.count (counter)
+# - kaito.split.chunks (gauge)
+# - kaito.split.tokens (gauge)
+```
+
+#### Datadog Integration
+
+```ruby
+require 'datadog/statsd'
+
+datadog = Datadog::Statsd.new('localhost', 8125)
+
+Kaito.configure do |config|
+  config.metrics = Kaito::Metrics.new(
+    backend: :datadog,
+    client: datadog,
+    namespace: 'kaito',
+    tags: { env: 'production' }
+  )
+end
+```
+
+#### Custom Metrics Backend
+
+```ruby
+class CustomMetrics
+  def increment(metric, value = 1, tags: {})
+    # Your custom implementation
+  end
+
+  def timing(metric, value, tags: {})
+    # Your custom implementation
+  end
+
+  def gauge(metric, value, tags: {})
+    # Your custom implementation
+  end
+end
+
+Kaito.configure do |config|
+  config.metrics = Kaito::Metrics.new(
+    backend: :custom,
+    client: CustomMetrics.new
+  )
+end
+```
+
+### Production Setup
+
+Here's a complete production-ready observability configuration:
+
+```ruby
+Kaito.configure do |config|
+  # Structured JSON logging for log aggregation
+  config.logger = Kaito::Logger.new(
+    $stdout,
+    level: ENV['LOG_LEVEL']&.to_sym || :info,
+    format: :json
+  )
+
+  # StatsD metrics for dashboards
+  config.metrics = Kaito::Metrics.new(
+    backend: :statsd,
+    client: StatsD.new(ENV['STATSD_HOST'], ENV['STATSD_PORT']),
+    namespace: 'kaito',
+    tags: {
+      service: 'text_processor',
+      env: ENV['RACK_ENV'],
+      version: Kaito::VERSION
+    }
+  )
+
+  # Instrumentation for APM
+  config.instrumentation_enabled = true
+end
+
+# Subscribe to events for APM integration
+Kaito::Instrumentation.subscribe(/\.kaito$/) do |event|
+  NewRelic::Agent.record_metric(
+    "Custom/Kaito/#{event.name}",
+    event.duration
+  )
+end
+```
+
+### Performance Considerations
+
+All observability features are designed to be opt-in and have minimal performance impact:
+
+- **Logging**: No overhead when logger is not configured
+- **Instrumentation**: Zero cost when no subscribers are registered
+- **Metrics**: No-op adapter when metrics are disabled
+- **Thread-safe**: All observability components are thread-safe
+
+See `examples/observability_example.rb` for more detailed usage examples.
 
 ## CLI Usage
 
@@ -252,7 +499,7 @@ We deeply respect the work that [Baran](https://github.com/moeki0/baran) and [La
 
 **Use Kaito if you:**
 - Need production-grade performance and accuracy
-- Require precise token counting for GPT/Claude models
+- Require precise token counting for GPT models
 - Are building RAG systems with semantic retrieval requirements
 - Need to process large documents or corpora efficiently
 - Want adaptive overlap and intelligent boundary preservation
@@ -378,7 +625,7 @@ recursive         0.038s    120       425
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/yourusername/kaito.
+Bug reports and pull requests are welcome on GitHub at https://github.com/codeRailroad/kaito.
 
 1. Fork it
 2. Create your feature branch (`git checkout -b my-new-feature`)
