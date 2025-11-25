@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
 module Kaito
-  VERSION = "0.1.0"
+  # Current version of the Kaito gem
+  VERSION = '0.1.0'
 end

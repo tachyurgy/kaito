@@ -1,44 +1,341 @@
 AllCops:
-  TargetRubyVersion: 3.0
   NewCops: enable
+  TargetRubyVersion: 3.0
+  SuggestExtensions: false
   Exclude:
-    - 'vendor/**/*'
-    - 'spec/fixtures/**/*'
-    - 'tmp/**/*'
+    - 'examples/**/*'  # Example files don't need strict linting
 
+# New Cops - Gemspec
+Gemspec/AddRuntimeDependency:
+  Enabled: true
+Gemspec/AttributeAssignment:
+  Enabled: true
+Gemspec/DeprecatedAttributeAssignment:
+  Enabled: true
+Gemspec/DevelopmentDependencies:
+  Enabled: false  # We keep dev deps in gemspec for compatibility
+Gemspec/RequireMFA:
+  Enabled: false
+
+# New Cops - Layout
+Layout/EmptyLinesAfterModuleInclusion:
+  Enabled: true
+Layout/LineContinuationLeadingSpace:
+  Enabled: true
+Layout/LineContinuationSpacing:
+  Enabled: true
+Layout/LineEndStringConcatenationIndentation:
+  Enabled: true
+Layout/SpaceBeforeBrackets:
+  Enabled: true
+
+# New Cops - Lint
+Lint/AmbiguousAssignment:
+  Enabled: true
+Lint/AmbiguousOperatorPrecedence:
+  Enabled: true
+Lint/AmbiguousRange:
+  Enabled: true
+Lint/ArrayLiteralInRegexp:
+  Enabled: true
+Lint/ConstantOverwrittenInRescue:
+  Enabled: true
+Lint/ConstantReassignment:
+  Enabled: true
+Lint/CopDirectiveSyntax:
+  Enabled: true
+Lint/DeprecatedConstants:
+  Enabled: true
+Lint/DuplicateBranch:
+  Enabled: true
+Lint/DuplicateMagicComment:
+  Enabled: true
+Lint/DuplicateMatchPattern:
+  Enabled: true
+Lint/DuplicateRegexpCharacterClassElement:
+  Enabled: true
+Lint/DuplicateSetElement:
+  Enabled: true
+Lint/EmptyBlock:
+  Enabled: true
+Lint/EmptyClass:
+  Enabled: true
+Lint/EmptyInPattern:
+  Enabled: true
+Lint/HashNewWithKeywordArgumentsAsDefault:
+  Enabled: true
+Lint/IncompatibleIoSelectWithFiberScheduler:
+  Enabled: true
+Lint/ItWithoutArgumentsInBlock:
+  Enabled: true
+Lint/LambdaWithoutLiteralBlock:
+  Enabled: true
+Lint/LiteralAssignmentInCondition:
+  Enabled: true
+Lint/MixedCaseRange:
+  Enabled: true
+Lint/NoReturnInBeginEndBlocks:
+  Enabled: true
+Lint/NonAtomicFileOperation:
+  Enabled: true
+Lint/NumberedParameterAssignment:
+  Enabled: true
+Lint/NumericOperationWithConstantResult:
+  Enabled: true
+Lint/OrAssignmentToConstant:
+  Enabled: true
+Lint/RedundantDirGlobSort:
+  Enabled: true
+Lint/RedundantRegexpQuantifiers:
+  Enabled: true
+Lint/RedundantTypeConversion:
+  Enabled: true
+Lint/RefinementImportMethods:
+  Enabled: true
+Lint/RequireRangeParentheses:
+  Enabled: true
+Lint/RequireRelativeSelfPath:
+  Enabled: true
+Lint/SharedMutableDefault:
+  Enabled: true
+Lint/SuppressedExceptionInNumberConversion:
+  Enabled: true
+Lint/SymbolConversion:
+  Enabled: true
+Lint/ToEnumArguments:
+  Enabled: true
+Lint/TripleQuotes:
+  Enabled: true
+Lint/UnescapedBracketInRegexp:
+  Enabled: true
+Lint/UnexpectedBlockArity:
+  Enabled: true
+Lint/UnmodifiedReduceAccumulator:
+  Enabled: true
+Lint/UselessConstantScoping:
+  Enabled: true
+Lint/UselessDefaultValueArgument:
+  Enabled: true
+Lint/UselessDefined:
+  Enabled: true
+Lint/UselessNumericOperation:
+  Enabled: true
+Lint/UselessOr:
+  Enabled: true
+Lint/UselessRescue:
+  Enabled: true
+Lint/UselessRuby2Keywords:
+  Enabled: true
+
+# New Cops - Metrics
+Metrics/CollectionLiteralLength:
+  Enabled: true
+
+# New Cops - Naming
+Naming/BlockForwarding:
+  Enabled: true
+Naming/PredicateMethod:
+  Enabled: true
+Naming/VariableNumber:
+  Enabled: false  # Model names like text_davinci_003 are external API names
+
+# New Cops - Security
+Security/CompoundHash:
+  Enabled: true
+Security/IoMethods:
+  Enabled: true
+
+# New Cops - Style
+Style/AmbiguousEndlessMethodDefinition:
+  Enabled: true
+Style/ArgumentsForwarding:
+  Enabled: true
+Style/ArrayIntersect:
+  Enabled: true
+Style/BitwisePredicate:
+  Enabled: true
+Style/CollectionCompact:
+  Enabled: true
+Style/CollectionQuerying:
+  Enabled: true
+Style/CombinableDefined:
+  Enabled: true
+Style/ComparableBetween:
+  Enabled: true
+Style/ComparableClamp:
+  Enabled: true
+Style/ConcatArrayLiterals:
+  Enabled: true
+Style/DataInheritance:
+  Enabled: true
+Style/DigChain:
+  Enabled: true
+Style/DirEmpty:
+  Enabled: true
+Style/DocumentDynamicEvalDefinition:
+  Enabled: true
+Style/EmptyHeredoc:
+  Enabled: true
+Style/EmptyStringInsideInterpolation:
+  Enabled: true
+Style/EndlessMethod:
+  Enabled: true
+Style/EnvHome:
+  Enabled: true
+Style/ExactRegexpMatch:
+  Enabled: true
+Style/FetchEnvVar:
+  Enabled: true
+Style/FileEmpty:
+  Enabled: true
+Style/FileRead:
+  Enabled: true
+Style/FileWrite:
+  Enabled: true
+Style/HashConversion:
+  Enabled: true
+Style/HashExcept:
+  Enabled: true
+Style/IfWithBooleanLiteralBranches:
+  Enabled: true
+Style/InPatternThen:
+  Enabled: true
+Style/MagicCommentFormat:
+  Enabled: true
+Style/MapIntoArray:
+  Enabled: true
+Style/MapToHash:
+  Enabled: true
+Style/MapToSet:
+  Enabled: true
+Style/MinMaxComparison:
+  Enabled: true
+Style/MultilineInPatternThen:
+  Enabled: true
+Style/NegatedIfElseCondition:
+  Enabled: true
+Style/NestedFileDirname:
+  Enabled: true
+Style/NilLambda:
+  Enabled: true
+Style/NumberedParameters:
+  Enabled: true
+Style/NumberedParametersLimit:
+  Enabled: true
+Style/ObjectThen:
+  Enabled: true
+Style/OpenStructUse:
+  Enabled: true
+Style/OperatorMethodCall:
+  Enabled: true
+Style/QuotedSymbols:
+  Enabled: true
+Style/RedundantArgument:
+  Enabled: true
+Style/RedundantArrayConstructor:
+  Enabled: true
+Style/RedundantConstantBase:
+  Enabled: true
+Style/RedundantCurrentDirectoryInPath:
+  Enabled: true
+Style/RedundantDoubleSplatHashBraces:
+  Enabled: true
+Style/RedundantEach:
+  Enabled: true
+Style/RedundantFilterChain:
+  Enabled: true
+Style/RedundantHeredocDelimiterQuotes:
+  Enabled: true
+Style/RedundantInitialize:
+  Enabled: true
+Style/RedundantLineContinuation:
+  Enabled: true
+Style/RedundantRegexpArgument:
+  Enabled: true
+Style/RedundantRegexpConstructor:
+  Enabled: true
+Style/RedundantSelfAssignmentBranch:
+  Enabled: true
+Style/RedundantStringEscape:
+  Enabled: true
+Style/ReturnNilInPredicateMethodDefinition:
+  Enabled: true
+Style/SelectByRegexp:
+  Enabled: true
+Style/SendWithLiteralMethodName:
+  Enabled: true
+Style/SingleLineDoEndBlock:
+  Enabled: true
+Style/StringChars:
+  Enabled: true
+  Exclude:
+    - 'spec/**/*'  # Testing split('') is intentional in specs
+Style/SuperArguments:
+  Enabled: true
+Style/SuperWithArgsParentheses:
+  Enabled: true
+Style/SwapValues:
+  Enabled: true
+Style/YAMLFileRead:
+  Enabled: true
+
+# Metrics configurations
+Metrics/MethodLength:
+  Max: 30
+  CountAsOne: ['array', 'hash', 'heredoc']
+  Exclude:
+    - 'lib/kaito/cli.rb'  # CLI commands have more output/formatting logic
+
+Metrics/AbcSize:
+  Max: 30
+  CountRepeatedAttributes: false
+  Exclude:
+    - 'lib/kaito/cli.rb'  # CLI commands have higher ABC due to output formatting
+
+Metrics/ClassLength:
+  Max: 250
+
+Metrics/BlockLength:
+  Max: 25
+  Exclude:
+    - 'spec/**/*'
+    - '*.gemspec'
+    - 'lib/kaito/cli.rb'  # CLI commands often have larger blocks for output formatting
+
+Metrics/ParameterLists:
+  Max: 5
+  CountKeywordArgs: true
+  Exclude:
+    - 'lib/kaito.rb'  # Public API methods need more parameters
+    - 'lib/kaito/splitters/**/*'  # Splitter initializers have many config options
+
+Metrics/CyclomaticComplexity:
+  Max: 7
+  Exclude:
+    - 'lib/kaito/cli.rb'  # CLI commands have higher complexity due to option handling
+
+Metrics/PerceivedComplexity:
+  Max: 8
+  Exclude:
+    - 'lib/kaito/cli.rb'  # CLI commands have higher complexity due to option handling
+
+# Layout configurations
+Layout/LineLength:
+  Max: 120
+  AllowedPatterns: ['(\A|\s)#']
+
+# Style configurations
 Style/Documentation:
   Enabled: false
 
+Style/FrozenStringLiteralComment:
+  Enabled: true
+  EnforcedStyle: always
+
 Style/StringLiterals:
   Enabled: true
-  EnforcedStyle: double_quotes
+  EnforcedStyle: single_quotes
 
-Style/StringLiteralsInInterpolation:
+Style/HashSyntax:
   Enabled: true
-  EnforcedStyle: double_quotes
-
-Layout/LineLength:
-  Max: 120
-
-Metrics/MethodLength:
-  Max: 30
-
-Metrics/ClassLength:
-  Max: 300
-
-Metrics/ModuleLength:
-  Max: 300
-
-Metrics/BlockLength:
-  Exclude:
-    - 'spec/**/*'
-    - 'kaito.gemspec'
-
-Metrics/AbcSize:
-  Max: 25
-
-Metrics/CyclomaticComplexity:
-  Max: 10
-
-Metrics/PerceivedComplexity:
-  Max: 10
+  EnforcedStyle: ruby19

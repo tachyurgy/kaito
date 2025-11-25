@@ -9,7 +9,7 @@ module Kaito
       #
       # @param text [String] the text to split
       # @return [Array<Chunk>] array of text chunks
-      def split(text)
+      def perform_split(text)
         return [] if text.nil? || text.empty?
 
         chunks = []
@@ -28,7 +28,7 @@ module Kaito
 
           # Move position forward, accounting for overlap
           advance = chunk_text.length
-          if overlap_tokens > 0 && current_pos + advance < text.length
+          if overlap_tokens.positive? && current_pos + advance < text.length
             # Calculate how much to step back for overlap
             overlap_chars = calculate_overlap_chars(chunk_text)
             current_pos += advance - overlap_chars
@@ -43,8 +43,8 @@ module Kaito
       private
 
       def extract_chunk(text, start_pos)
-        remaining = text[start_pos..-1]
-        return "" if remaining.empty?
+        remaining = text[start_pos..]
+        return '' if remaining.empty?
 
         # Binary search for the right length
         min_len = 1
@@ -68,7 +68,7 @@ module Kaito
       end
 
       def calculate_overlap_chars(text)
-        return 0 if overlap_tokens == 0 || text.empty?
+        return 0 if overlap_tokens.zero? || text.empty?
 
         # Binary search for character length that gives us overlap_tokens
         min_len = 0
@@ -77,7 +77,7 @@ module Kaito
 
         while min_len <= max_len
           mid = (min_len + max_len) / 2
-          suffix = text[-mid..-1] || ""
+          suffix = text[-mid..] || ''
           token_count = tokenizer.count(suffix)
 
           if token_count <= overlap_tokens

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 begin
-  require "pragmatic_segmenter"
+  require 'pragmatic_segmenter'
 rescue LoadError
   # pragmatic_segmenter is optional, will fall back to simple splitting
   nil
@@ -34,7 +34,7 @@ module Kaito
       #
       # @param text [String] the text to split
       # @return [Array<Chunk>] array of text chunks
-      def split(text)
+      def perform_split(text)
         return [] if text.nil? || text.empty?
 
         # Normalize text
@@ -63,7 +63,7 @@ module Kaito
 
       def split_by_sentences(text)
         sentences = segment_sentences(text)
-        combine_into_chunks(sentences, separator: " ")
+        combine_into_chunks(sentences, separator: ' ')
       end
 
       def segment_sentences(text)
@@ -82,56 +82,53 @@ module Kaito
         chunks = []
         current_chunk = []
         current_tokens = 0
-        overlap_segments = []
 
         segments.each do |segment|
           segment_tokens = tokenizer.count(segment)
 
-          # If single segment exceeds max_tokens, split it
           if segment_tokens > max_tokens
-            # Flush current chunk first
-            unless current_chunk.empty?
-              chunks << create_chunk_from_segments(current_chunk, separator, chunks.length)
-              overlap_segments = calculate_overlap_segments(current_chunk, separator)
-              current_chunk = overlap_segments.dup
-              current_tokens = calculate_tokens(current_chunk, separator)
-            end
-
-            # Split the large segment
-            split_large_segment(segment).each do |sub_chunk|
-              chunks << sub_chunk
-            end
-
-            overlap_segments = []
-            current_chunk = []
-            current_tokens = 0
+            chunks, current_chunk, current_tokens = handle_oversized_segment(
+              segment, chunks, current_chunk, separator
+            )
             next
           end
 
-          # Check if adding this segment would exceed max_tokens
-          potential_tokens = current_tokens + segment_tokens
-          potential_tokens += tokenizer.count(separator) unless current_chunk.empty?
-
-          if potential_tokens > max_tokens && !current_chunk.empty?
-            # Create chunk from current segments
-            chunks << create_chunk_from_segments(current_chunk, separator, chunks.length)
-
-            # Set up overlap for next chunk
-            overlap_segments = calculate_overlap_segments(current_chunk, separator)
-            current_chunk = overlap_segments.dup
-            current_tokens = calculate_tokens(current_chunk, separator)
+          if should_create_new_chunk?(current_tokens, segment_tokens, current_chunk, separator)
+            chunks, current_chunk, current_tokens = finalize_and_overlap(
+              chunks, current_chunk, separator
+            )
           end
 
           current_chunk << segment
           current_tokens = calculate_tokens(current_chunk, separator)
         end
 
-        # Add final chunk
-        unless current_chunk.empty?
-          chunks << create_chunk_from_segments(current_chunk, separator, chunks.length)
-        end
-
+        chunks << create_chunk_from_segments(current_chunk, separator, chunks.length) unless current_chunk.empty?
         chunks
+      end
+
+      def handle_oversized_segment(segment, chunks, current_chunk, separator)
+        chunks << create_chunk_from_segments(current_chunk, separator, chunks.length) unless current_chunk.empty?
+
+        split_large_segment(segment).each { |sub_chunk| chunks << sub_chunk }
+        [chunks, [], 0]
+      end
+
+      def should_create_new_chunk?(current_tokens, segment_tokens, current_chunk, separator)
+        return false if current_chunk.empty?
+
+        potential_tokens = current_tokens + segment_tokens + tokenizer.count(separator)
+        potential_tokens > max_tokens
+      end
+
+      def finalize_and_overlap(chunks, current_chunk, separator)
+        chunks << create_chunk_from_segments(current_chunk, separator, chunks.length)
+
+        overlap_segments = calculate_overlap_segments(current_chunk, separator)
+        current_chunk = overlap_segments.dup
+        current_tokens = calculate_tokens(current_chunk, separator)
+
+        [chunks, current_chunk, current_tokens]
       end
 
       def create_chunk_from_segments(segments, separator, index)
@@ -151,7 +148,7 @@ module Kaito
       end
 
       def calculate_overlap_segments(segments, separator)
-        return [] if overlap_tokens == 0 || segments.empty?
+        return [] if overlap_tokens.zero? || segments.empty?
 
         overlap_segs = []
         tokens = 0
@@ -159,13 +156,11 @@ module Kaito
         # Take segments from the end until we reach overlap_tokens
         segments.reverse_each do |segment|
           segment_tokens = tokenizer.count(segment)
-          if tokens + segment_tokens <= overlap_tokens
-            overlap_segs.unshift(segment)
-            tokens += segment_tokens
-            tokens += tokenizer.count(separator) if overlap_segs.length > 1
-          else
-            break
-          end
+          break unless tokens + segment_tokens <= overlap_tokens
+
+          overlap_segs.unshift(segment)
+          tokens += segment_tokens
+          tokens += tokenizer.count(separator) if overlap_segs.length > 1
         end
 
         overlap_segs

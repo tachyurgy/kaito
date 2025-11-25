@@ -1,16 +1,16 @@
 # frozen_string_literal: true
 
 RSpec.describe Kaito::Splitters::AdaptiveOverlap do
-  let(:splitter) {
+  let(:splitter) do
     described_class.new(
       max_tokens: 100,
       overlap_tokens: 20,
       tokenizer: :character
     )
-  }
+  end
 
-  describe "#initialize" do
-    it "initializes with default parameters" do
+  describe '#initialize' do
+    it 'initializes with default parameters' do
       splitter = described_class.new
       expect(splitter.max_tokens).to eq(512)
       expect(splitter.overlap_tokens).to eq(50)
@@ -19,7 +19,7 @@ RSpec.describe Kaito::Splitters::AdaptiveOverlap do
       expect(splitter.similarity_threshold).to eq(0.3)
     end
 
-    it "initializes with custom parameters" do
+    it 'initializes with custom parameters' do
       splitter = described_class.new(
         max_tokens: 256,
         overlap_tokens: 30,
@@ -36,16 +36,16 @@ RSpec.describe Kaito::Splitters::AdaptiveOverlap do
     end
   end
 
-  describe "#split" do
+  describe '#split' do
     let(:text) do
-      "This is the first sentence about AI. " \
-      "This is the second sentence about machine learning. " \
-      "This is the third sentence about neural networks. " \
-      "This is the fourth sentence about deep learning. " \
-      "This is the fifth sentence about AI. "
+      'This is the first sentence about AI. ' \
+        'This is the second sentence about machine learning. ' \
+        'This is the third sentence about neural networks. ' \
+        'This is the fourth sentence about deep learning. ' \
+        'This is the fifth sentence about AI. '
     end
 
-    it "splits text into chunks with adaptive overlap" do
+    it 'splits text into chunks with adaptive overlap' do
       chunks = splitter.split(text)
 
       expect(chunks).to be_an(Array)
@@ -53,22 +53,22 @@ RSpec.describe Kaito::Splitters::AdaptiveOverlap do
       expect(chunks.length).to be > 0
     end
 
-    it "returns empty array for empty text" do
-      expect(splitter.split("")).to eq([])
+    it 'returns empty array for empty text' do
+      expect(splitter.split('')).to eq([])
       expect(splitter.split(nil)).to eq([])
     end
 
-    it "returns single chunk for short text" do
-      short_text = "This is a short text."
+    it 'returns single chunk for short text' do
+      short_text = 'This is a short text.'
       chunks = splitter.split(short_text)
 
       expect(chunks.length).to eq(1)
       expect(chunks.first.text).to eq(short_text)
     end
 
-    it "adds adaptive_overlap metadata to chunks after the first" do
-      long_text = ("This is sentence number one. " * 10) +
-                  ("This is sentence number two. " * 10)
+    it 'adds adaptive_overlap metadata to chunks after the first' do
+      long_text = ('This is sentence number one. ' * 10) +
+                  ('This is sentence number two. ' * 10)
 
       chunks = splitter.split(long_text)
 
@@ -84,8 +84,8 @@ RSpec.describe Kaito::Splitters::AdaptiveOverlap do
       end
     end
 
-    it "adds overlap_tokens metadata" do
-      long_text = ("This is a test sentence. " * 20)
+    it 'adds overlap_tokens metadata' do
+      long_text = ('This is a test sentence. ' * 20)
       chunks = splitter.split(long_text)
 
       if chunks.length > 1
@@ -97,8 +97,8 @@ RSpec.describe Kaito::Splitters::AdaptiveOverlap do
       end
     end
 
-    it "creates chunks that may exceed max_tokens due to overlap" do
-      long_text = "word " * 200
+    it 'creates chunks that may exceed max_tokens due to overlap' do
+      long_text = 'word ' * 200
       chunks = splitter.split(long_text)
 
       # First chunk should respect max_tokens
@@ -111,17 +111,17 @@ RSpec.describe Kaito::Splitters::AdaptiveOverlap do
       end
     end
 
-    it "provides appropriate overlap between consecutive chunks" do
-      long_text = ("Sentence one about AI. " * 5) +
-                  ("Sentence two about ML. " * 5) +
-                  ("Sentence three about DL. " * 5)
+    it 'provides appropriate overlap between consecutive chunks' do
+      long_text = ('Sentence one about AI. ' * 5) +
+                  ('Sentence two about ML. ' * 5) +
+                  ('Sentence three about DL. ' * 5)
 
       chunks = splitter.split(long_text)
 
       if chunks.length > 1
         chunks[1..].each do |chunk|
           overlap = chunk.metadata[:overlap_tokens]
-          # Note: overlap may be less than min if needed to respect max_tokens
+          # NOTE: overlap may be less than min if needed to respect max_tokens
           # This is correct behavior - max_tokens is a hard limit
           expect(overlap).to be <= splitter.max_overlap_tokens
           # Verify chunk never exceeds max_tokens (most important)
@@ -130,22 +130,22 @@ RSpec.describe Kaito::Splitters::AdaptiveOverlap do
       end
     end
 
-    it "handles text with multiple paragraphs" do
-      text = "Paragraph one has multiple sentences. " \
+    it 'handles text with multiple paragraphs' do
+      text = 'Paragraph one has multiple sentences. ' \
              "It talks about various topics.\n\n" \
-             "Paragraph two is different. " \
+             'Paragraph two is different. ' \
              "It discusses other matters.\n\n" \
-             "Paragraph three continues. " \
-             "It provides more information."
+             'Paragraph three continues. ' \
+             'It provides more information.'
 
       chunks = splitter.split(text)
       expect(chunks).to all(be_a(Kaito::Chunk))
       expect(chunks).not_to be_empty
     end
 
-    it "preserves sentence boundaries in overlap when possible" do
-      long_text = ("Complete sentence one. " * 10) +
-                  ("Complete sentence two. " * 10)
+    it 'preserves sentence boundaries in overlap when possible' do
+      long_text = ('Complete sentence one. ' * 10) +
+                  ('Complete sentence two. ' * 10)
 
       chunks = splitter.split(long_text)
 
@@ -159,8 +159,8 @@ RSpec.describe Kaito::Splitters::AdaptiveOverlap do
       end
     end
 
-    it "handles text without clear sentence boundaries" do
-      text = "a" * 300
+    it 'handles text without clear sentence boundaries' do
+      text = 'a' * 300
       chunks = splitter.split(text)
 
       expect(chunks).not_to be_empty
@@ -172,8 +172,8 @@ RSpec.describe Kaito::Splitters::AdaptiveOverlap do
       end
     end
 
-    it "indexes chunks correctly" do
-      long_text = "sentence " * 100
+    it 'indexes chunks correctly' do
+      long_text = 'sentence ' * 100
       chunks = splitter.split(long_text)
 
       chunks.each_with_index do |chunk, expected_index|
@@ -182,8 +182,8 @@ RSpec.describe Kaito::Splitters::AdaptiveOverlap do
     end
   end
 
-  describe "overlap calculation" do
-    let(:splitter) {
+  describe 'overlap calculation' do
+    let(:splitter) do
       described_class.new(
         max_tokens: 80,
         overlap_tokens: 15,
@@ -192,12 +192,12 @@ RSpec.describe Kaito::Splitters::AdaptiveOverlap do
         similarity_threshold: 0.3,
         tokenizer: :character
       )
-    }
+    end
 
-    it "adapts overlap based on content similarity" do
+    it 'adapts overlap based on content similarity' do
       # Text with high similarity between sections
-      similar_text = ("The AI system processes data efficiently. " * 3) +
-                     ("The AI system handles requests quickly. " * 3)
+      similar_text = ('The AI system processes data efficiently. ' * 3) +
+                     ('The AI system handles requests quickly. ' * 3)
 
       chunks = splitter.split(similar_text)
 
@@ -208,10 +208,10 @@ RSpec.describe Kaito::Splitters::AdaptiveOverlap do
       end
     end
 
-    it "handles overlap for dissimilar content" do
+    it 'handles overlap for dissimilar content' do
       # Text with low similarity between sections
-      dissimilar_text = ("Completely different topic about cats and dogs. " * 3) +
-                       ("Now discussing quantum physics and mathematics. " * 3)
+      dissimilar_text = ('Completely different topic about cats and dogs. ' * 3) +
+                        ('Now discussing quantum physics and mathematics. ' * 3)
 
       chunks = splitter.split(dissimilar_text)
 
@@ -224,58 +224,58 @@ RSpec.describe Kaito::Splitters::AdaptiveOverlap do
     end
   end
 
-  describe "edge cases" do
-    it "handles very long text" do
-      long_text = ("This is a test sentence with various words. " * 100)
+  describe 'edge cases' do
+    it 'handles very long text' do
+      long_text = ('This is a test sentence with various words. ' * 100)
       chunks = splitter.split(long_text)
 
       expect(chunks).not_to be_empty
       expect(chunks).to all(be_a(Kaito::Chunk))
     end
 
-    it "handles single sentence" do
-      text = "This is a single sentence."
+    it 'handles single sentence' do
+      text = 'This is a single sentence.'
       chunks = splitter.split(text)
 
       expect(chunks.length).to eq(1)
       expect(chunks.first.text).to eq(text)
     end
 
-    it "handles text with special characters" do
-      text = "Special chars: @#$%^&*(). " \
-             "More special: <>?\"{}|\\. " \
-             "Even more: ~`![]+=."
+    it 'handles text with special characters' do
+      text = "Special chars: @\#$%^&*(). " \
+             'More special: <>?"{}|\\. ' \
+             'Even more: ~`![]+=.'
 
       chunks = splitter.split(text)
       expect(chunks).not_to be_empty
     end
 
-    it "handles unicode text" do
-      text = "This is English. " \
-             "これは日本語です。" \
-             "هذا عربي. " \
-             "זה עברית."
+    it 'handles unicode text' do
+      text = 'This is English. ' \
+             'これは日本語です。' \
+             'هذا عربي. ' \
+             'זה עברית.'
 
       chunks = splitter.split(text)
       expect(chunks).not_to be_empty
     end
 
-    it "handles text with code blocks" do
+    it 'handles text with code blocks' do
       text = "Here is some code:\n\n" \
              "```ruby\n" \
-             "def hello\n" \
-             "  puts 'world'\n" \
+             "def hello\n  " \
+             "puts 'world'\n" \
              "end\n" \
              "```\n\n" \
-             "And more text follows."
+             'And more text follows.'
 
       chunks = splitter.split(text)
       expect(chunks).not_to be_empty
     end
   end
 
-  describe "similarity threshold impact" do
-    it "uses higher overlap with high similarity threshold" do
+  describe 'similarity threshold impact' do
+    it 'uses higher overlap with high similarity threshold' do
       high_threshold_splitter = described_class.new(
         max_tokens: 80,
         overlap_tokens: 15,
@@ -285,8 +285,8 @@ RSpec.describe Kaito::Splitters::AdaptiveOverlap do
         tokenizer: :character
       )
 
-      text = ("Similar content here. " * 5) +
-             ("Similar content there. " * 5)
+      text = ('Similar content here. ' * 5) +
+             ('Similar content there. ' * 5)
 
       chunks = high_threshold_splitter.split(text)
 
@@ -297,7 +297,7 @@ RSpec.describe Kaito::Splitters::AdaptiveOverlap do
       end
     end
 
-    it "uses more overlap with low similarity threshold" do
+    it 'uses more overlap with low similarity threshold' do
       low_threshold_splitter = described_class.new(
         max_tokens: 80,
         overlap_tokens: 15,
@@ -307,8 +307,8 @@ RSpec.describe Kaito::Splitters::AdaptiveOverlap do
         tokenizer: :character
       )
 
-      text = ("Different content. " * 5) +
-             ("Completely other stuff. " * 5)
+      text = ('Different content. ' * 5) +
+             ('Completely other stuff. ' * 5)
 
       chunks = low_threshold_splitter.split(text)
 
@@ -320,9 +320,9 @@ RSpec.describe Kaito::Splitters::AdaptiveOverlap do
     end
   end
 
-  describe "chunk metadata" do
-    it "includes all required metadata fields" do
-      long_text = "sentence " * 100
+  describe 'chunk metadata' do
+    it 'includes all required metadata fields' do
+      long_text = 'sentence ' * 100
       chunks = splitter.split(long_text)
 
       chunks.each do |chunk|
@@ -341,14 +341,14 @@ RSpec.describe Kaito::Splitters::AdaptiveOverlap do
     end
   end
 
-  describe "tokenizer integration" do
-    it "works with character tokenizer" do
+  describe 'tokenizer integration' do
+    it 'works with character tokenizer' do
       char_splitter = described_class.new(
         max_tokens: 50,
         overlap_tokens: 10,
         tokenizer: :character
       )
-      text = "a" * 200
+      text = 'a' * 200
 
       chunks = char_splitter.split(text)
       expect(chunks).not_to be_empty
@@ -356,8 +356,8 @@ RSpec.describe Kaito::Splitters::AdaptiveOverlap do
       expect(chunks.first.token_count).to be <= 50
     end
 
-    it "respects tokenizer for overlap calculation" do
-      text = ("Test sentence. " * 20)
+    it 'respects tokenizer for overlap calculation' do
+      text = ('Test sentence. ' * 20)
       chunks = splitter.split(text)
 
       if chunks.length > 1

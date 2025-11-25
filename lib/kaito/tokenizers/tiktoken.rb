@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 begin
-  require "tiktoken_ruby"
+  require 'tiktoken_ruby'
 rescue LoadError
   # tiktoken_ruby is optional
   nil
@@ -13,18 +13,16 @@ module Kaito
     # Supports GPT-3.5, GPT-4, and other OpenAI models
     class Tiktoken < Base
       # Model to encoding mapping
-      # Note: Claude uses cl100k_base as an APPROXIMATION only.
-      # Anthropic uses a different tokenizer, so counts may not be exact.
-      # For production Claude usage, consider using a character-based fallback
-      # or implementing a proper Claude tokenizer when available.
+      # Supports OpenAI GPT models with accurate token counting via tiktoken_ruby.
+      # For Claude models, use character-based tokenization as Anthropic's tokenizer
+      # is not publicly available for Ruby.
       MODEL_ENCODINGS = {
-        gpt35_turbo: "cl100k_base",
-        gpt4: "cl100k_base",
-        gpt4_turbo: "cl100k_base",
-        claude: "cl100k_base", # APPROXIMATE - Claude has different tokenizer
-        text_davinci_003: "p50k_base",
-        text_davinci_002: "p50k_base",
-        code_davinci_002: "p50k_base"
+        gpt35_turbo: 'cl100k_base',
+        gpt4: 'cl100k_base',
+        gpt4_turbo: 'cl100k_base',
+        text_davinci_003: 'p50k_base',
+        text_davinci_002: 'p50k_base',
+        code_davinci_002: 'p50k_base'
       }.freeze
 
       attr_reader :encoding_name, :encoder
@@ -32,11 +30,15 @@ module Kaito
       # Initialize a tiktoken tokenizer
       # @param model [Symbol, String] the model name or encoding name
       def initialize(model: :gpt4)
+        super()
         ensure_tiktoken_available!
 
         @encoding_name = MODEL_ENCODINGS[model.to_sym] || model.to_s
         @encoder = ::Tiktoken.get_encoding(@encoding_name)
-        @cache = {} if Kaito.configuration.cache_tokenization
+        if Kaito.configuration.cache_tokenization
+          @cache = {}
+          @cache_mutex = Mutex.new
+        end
       rescue StandardError => e
         raise TokenizationError, "Failed to initialize tiktoken: #{e.message}"
       end
@@ -48,7 +50,10 @@ module Kaito
         return 0 if text.nil? || text.empty?
 
         if @cache
-          @cache[text] ||= encoder.encode(text).length
+          # Thread-safe cache access using mutex
+          @cache_mutex.synchronize do
+            @cache[text] ||= encoder.encode(text).length
+          end
         else
           encoder.encode(text).length
         end
@@ -71,7 +76,7 @@ module Kaito
       # @param tokens [Array<Integer>] array of token IDs
       # @return [String] the decoded text
       def decode(tokens)
-        return "" if tokens.nil? || tokens.empty?
+        return '' if tokens.nil? || tokens.empty?
 
         encoder.decode(tokens)
       rescue StandardError => e
@@ -91,7 +96,9 @@ module Kaito
 
       # Clear the tokenization cache
       def clear_cache!
-        @cache&.clear
+        return unless @cache
+
+        @cache_mutex.synchronize { @cache.clear }
       end
 
       private
@@ -99,7 +106,7 @@ module Kaito
       def ensure_tiktoken_available!
         return if defined?(::Tiktoken)
 
-        raise TokenizationError, "tiktoken_ruby gem is not available. Install it with: gem install tiktoken_ruby"
+        raise TokenizationError, 'tiktoken_ruby gem is not available. Install it with: gem install tiktoken_ruby'
       end
     end
   end

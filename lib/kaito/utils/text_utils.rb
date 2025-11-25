@@ -1,11 +1,16 @@
 # frozen_string_literal: true
 
-require "unicode_utils/nfkc"
+require 'unicode_utils/nfkc'
 
 module Kaito
+  # Namespace for utility functions
   module Utils
     # Text utility functions
     module TextUtils
+      # Default minimum overlap length for find_overlap
+      DEFAULT_MIN_OVERLAP = 10
+      # Threshold for code detection (ratio of code-like lines)
+      CODE_DETECTION_THRESHOLD = 0.3
       # Normalize Unicode text
       # @param text [String]
       # @return [String]
@@ -22,7 +27,7 @@ module Kaito
         return normalized unless remove_extra_whitespace
 
         # Remove extra whitespace while preserving paragraph breaks
-        normalized.gsub(/[^\S\n]+/, " ")           # Replace multiple spaces/tabs with single space
+        normalized.gsub(/[^\S\n]+/, ' ') # Replace multiple spaces/tabs with single space
                   .gsub(/ *\n */, "\n")            # Remove spaces around newlines
                   .gsub(/\n{3,}/, "\n\n")          # Max 2 consecutive newlines
                   .strip
@@ -35,14 +40,14 @@ module Kaito
         # Simple sentence boundary detection
         # This is a fallback for when pragmatic_segmenter is not available
         sentences = []
-        current = ""
+        current = ''
 
         text.scan(/[^.!?]+[.!?]+|[^.!?]+$/) do |match|
           current += match
           # Check if this looks like a sentence ending
           if match =~ /[.!?]+$/ && !match.match?(/\b[A-Z][a-z]?\.$/) # Not an abbreviation
             sentences << current.strip
-            current = ""
+            current = ''
           end
         end
 
@@ -61,7 +66,7 @@ module Kaito
       # @param text [String]
       # @return [Array<String>]
       def self.split_lines(text)
-        text.split(/\n/).map(&:strip)
+        text.split("\n").map(&:strip)
       end
 
       # Check if text appears to be code
@@ -81,7 +86,7 @@ module Kaito
         ]
 
         code_line_count = lines.count { |line| code_indicators.any? { |pattern| line.match?(pattern) } }
-        code_line_count.to_f / lines.length > 0.3
+        code_line_count.to_f / lines.length > CODE_DETECTION_THRESHOLD
       end
 
       # Check if text is markdown
@@ -98,7 +103,7 @@ module Kaito
 
         lines = text.split("\n")
         markdown_line_count = lines.count { |line| markdown_patterns.any? { |pattern| line.match?(pattern) } }
-        markdown_line_count > 0
+        markdown_line_count.positive?
       end
 
       # Extract the overlap between two strings
@@ -106,12 +111,12 @@ module Kaito
       # @param str2 [String] second string
       # @param min_overlap [Integer] minimum overlap to consider
       # @return [String, nil] the overlapping portion or nil
-      def self.find_overlap(str1, str2, min_overlap: 10)
+      def self.find_overlap(str1, str2, min_overlap: DEFAULT_MIN_OVERLAP)
         return nil if str1.empty? || str2.empty?
 
         max_len = [str1.length, str2.length].min
-        (max_len).downto(min_overlap) do |length|
-          suffix = str1[-length..-1]
+        max_len.downto(min_overlap) do |length|
+          suffix = str1[-length..]
           prefix = str2[0...length]
           return suffix if suffix == prefix
         end
@@ -143,14 +148,14 @@ module Kaito
       # @param max_length [Integer]
       # @param suffix [String] suffix to add if truncated
       # @return [String]
-      def self.truncate(text, max_length:, suffix: "...")
+      def self.truncate(text, max_length:, suffix: '...')
         return text if text.length <= max_length
 
         truncated_length = max_length - suffix.length
         truncated = text[0...truncated_length]
 
         # Try to break at last space
-        last_space = truncated.rindex(" ")
+        last_space = truncated.rindex(' ')
         truncated = truncated[0...last_space] if last_space
 
         truncated + suffix

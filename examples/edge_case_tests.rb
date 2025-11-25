@@ -3,33 +3,31 @@
 
 # Test edge cases and potential issues
 
-require_relative "../lib/kaito"
+require_relative '../lib/kaito'
 
-puts "Testing Edge Cases and Potential Issues"
-puts "=" * 80
+puts 'Testing Edge Cases and Potential Issues'
+puts '=' * 80
 
 # Test 1: Very small max_tokens
 puts "\n1. Very small max_tokens (10 tokens):"
 begin
-  text = "This is a test sentence with more than ten tokens for sure."
+  text = 'This is a test sentence with more than ten tokens for sure.'
   chunks = Kaito.split(text, max_tokens: 10, strategy: :semantic)
   puts "   ✓ Created #{chunks.length} chunks"
   chunks.each_with_index do |chunk, i|
-    if chunk.token_count > 10
-      puts "   ⚠️  Chunk #{i}: #{chunk.token_count} tokens (EXCEEDS LIMIT!)"
-    end
+    puts "   ⚠️  Chunk #{i}: #{chunk.token_count} tokens (EXCEEDS LIMIT!)" if chunk.token_count > 10
   end
-rescue => e
+rescue StandardError => e
   puts "   ✗ Error: #{e.message}"
 end
 
 # Test 2: max_tokens = 1
 puts "\n2. Extreme case: max_tokens = 1:"
 begin
-  text = "Hello world"
+  text = 'Hello world'
   chunks = Kaito.split(text, max_tokens: 1, strategy: :character)
   puts "   ✓ Created #{chunks.length} chunks"
-rescue => e
+rescue StandardError => e
   puts "   ✗ Error: #{e.message}"
 end
 
@@ -39,31 +37,29 @@ begin
   text = "     \n\n\t\t   \n   "
   chunks = Kaito.split(text, max_tokens: 100)
   puts "   ✓ Created #{chunks.length} chunks (empty text handling)"
-rescue => e
+rescue StandardError => e
   puts "   ✗ Error: #{e.message}"
 end
 
 # Test 4: Text with special characters
 puts "\n4. Text with special characters and emojis:"
 begin
-  text = "Hello 🌍 世界! This has émojis 🎉 and spëcial çharacters © ™ ® ñ ü ö"
+  text = 'Hello 🌍 世界! This has émojis 🎉 and spëcial çharacters © ™ ® ñ ü ö'
   chunks = Kaito.split(text, max_tokens: 20)
   puts "   ✓ Created #{chunks.length} chunks"
   puts "   Text preserved: #{chunks.first.text.include?('🌍')}"
-rescue => e
+rescue StandardError => e
   puts "   ✗ Error: #{e.message}"
 end
 
 # Test 5: All strategies with small text
 puts "\n5. All strategies with small text:"
-text = "Short text."
-[:character, :semantic, :recursive, :structure_aware, :adaptive].each do |strategy|
-  begin
-    chunks = Kaito.split(text, strategy: strategy, max_tokens: 100)
-    puts "   ✓ #{strategy}: #{chunks.length} chunk(s)"
-  rescue => e
-    puts "   ✗ #{strategy}: Error - #{e.message}"
-  end
+text = 'Short text.'
+%i[character semantic recursive structure_aware adaptive].each do |strategy|
+  chunks = Kaito.split(text, strategy: strategy, max_tokens: 100)
+  puts "   ✓ #{strategy}: #{chunks.length} chunk(s)"
+rescue StandardError => e
+  puts "   ✗ #{strategy}: Error - #{e.message}"
 end
 
 # Test 6: Markdown with only headers (no content)
@@ -72,7 +68,7 @@ begin
   text = "# Header 1\n## Header 2\n### Header 3"
   chunks = Kaito.split(text, strategy: :structure_aware, max_tokens: 100)
   puts "   ✓ Created #{chunks.length} chunks"
-rescue => e
+rescue StandardError => e
   puts "   ✗ Error: #{e.message}"
 end
 
@@ -86,34 +82,32 @@ begin
   CODE
   chunks = Kaito.split(code, strategy: :structure_aware, max_tokens: 100)
   puts "   ✓ Created #{chunks.length} chunks"
-rescue => e
+rescue StandardError => e
   puts "   ✗ Error: #{e.message}"
 end
 
 # Test 8: Very large overlap (close to max_tokens)
 puts "\n8. Very large overlap (90% of max_tokens):"
 begin
-  text = "This is a test sentence. " * 100
+  text = 'This is a test sentence. ' * 100
   chunks = Kaito.split(text, max_tokens: 100, overlap_tokens: 90, strategy: :semantic)
   puts "   ✓ Created #{chunks.length} chunks"
   exceeding = chunks.count { |c| c.token_count > 100 }
-  puts "   ⚠️  #{exceeding} chunks exceed max_tokens!" if exceeding > 0
-rescue => e
+  puts "   ⚠️  #{exceeding} chunks exceed max_tokens!" if exceeding.positive?
+rescue StandardError => e
   puts "   ✗ Error: #{e.message}"
 end
 
 # Test 9: Single sentence longer than max_tokens
 puts "\n9. Single sentence longer than max_tokens:"
 begin
-  long_sentence = "This is a very long sentence " * 50 + "."
+  long_sentence = "#{'This is a very long sentence ' * 50}."
   chunks = Kaito.split(long_sentence, max_tokens: 20, strategy: :semantic)
   puts "   ✓ Created #{chunks.length} chunks"
   chunks.each_with_index do |chunk, i|
-    if chunk.token_count > 20
-      puts "   ⚠️  Chunk #{i}: #{chunk.token_count} tokens (EXCEEDS!)"
-    end
+    puts "   ⚠️  Chunk #{i}: #{chunk.token_count} tokens (EXCEEDS!)" if chunk.token_count > 20
   end
-rescue => e
+rescue StandardError => e
   puts "   ✗ Error: #{e.message}"
 end
 
@@ -123,20 +117,20 @@ begin
   text = "Section A\n\nSection B\n\nSection C"
   chunks = Kaito.split(text, strategy: :recursive, max_tokens: 20)
   puts "   ✓ Created #{chunks.length} chunks"
-rescue => e
+rescue StandardError => e
   puts "   ✗ Error: #{e.message}"
 end
 
 # Test 11: Streaming non-existent file
 puts "\n11. Streaming non-existent file:"
 begin
-  Kaito.stream_file("/nonexistent/file.txt", max_tokens: 100) do |chunk|
+  Kaito.stream_file('/nonexistent/file.txt', max_tokens: 100) do |chunk|
     puts "Got chunk: #{chunk}"
   end
-  puts "   ✗ Should have raised error!"
+  puts '   ✗ Should have raised error!'
 rescue Kaito::FileError => e
   puts "   ✓ Correctly raised FileError: #{e.message}"
-rescue => e
+rescue StandardError => e
   puts "   ⚠️  Raised unexpected error: #{e.class} - #{e.message}"
 end
 
@@ -152,21 +146,21 @@ begin
   end
   results = threads.map(&:value)
   puts "   ✓ All threads completed: #{results.inspect}"
-rescue => e
+rescue StandardError => e
   puts "   ✗ Error: #{e.message}"
 end
 
 # Test 13: Memory test with very long text
 puts "\n13. Processing very long text (100KB+):"
 begin
-  huge_text = "This is a sentence. " * 10000
+  huge_text = 'This is a sentence. ' * 10_000
   start_time = Time.now
   chunks = Kaito.split(huge_text, max_tokens: 500, strategy: :semantic)
   elapsed = Time.now - start_time
   puts "   ✓ Created #{chunks.length} chunks in #{elapsed.round(2)}s"
   exceeding = chunks.count { |c| c.token_count > 500 }
-  puts "   ⚠️  #{exceeding} chunks exceed max_tokens!" if exceeding > 0
-rescue => e
+  puts "   ⚠️  #{exceeding} chunks exceed max_tokens!" if exceeding.positive?
+rescue StandardError => e
   puts "   ✗ Error: #{e.message}"
 end
 
@@ -178,20 +172,20 @@ begin
   chunks_unix = Kaito.split(text_unix, max_tokens: 50)
   chunks_windows = Kaito.split(text_windows, max_tokens: 50)
   puts "   ✓ Unix: #{chunks_unix.length} chunks, Windows: #{chunks_windows.length} chunks"
-rescue => e
+rescue StandardError => e
   puts "   ✗ Error: #{e.message}"
 end
 
 # Test 15: Testing the character tokenizer fallback
 puts "\n15. Character tokenizer:"
 begin
-  text = "Testing character tokenizer"
+  text = 'Testing character tokenizer'
   count = Kaito.count_tokens(text, tokenizer: :character)
   puts "   ✓ Character count: #{count} (expected: #{text.length})"
-  raise "Count mismatch!" unless count == text.length
-rescue => e
+  raise 'Count mismatch!' unless count == text.length
+rescue StandardError => e
   puts "   ✗ Error: #{e.message}"
 end
 
-puts "\n" + "=" * 80
-puts "Edge case testing complete!"
+puts "\n#{'=' * 80}"
+puts 'Edge case testing complete!'

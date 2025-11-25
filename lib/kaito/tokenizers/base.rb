@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module Kaito
+  # Namespace for tokenizer implementations
   module Tokenizers
     # Base class for all tokenizers
     class Base
@@ -39,7 +40,7 @@ module Kaito
         # Binary search for the right length
         min_len = 0
         max_len = text.length
-        result = ""
+        result = ''
 
         while min_len <= max_len
           mid = (min_len + max_len) / 2

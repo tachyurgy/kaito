@@ -27,7 +27,7 @@ module Kaito
       # @param tokens [Array<Integer>] array of character codes
       # @return [String] the decoded text
       def decode(tokens)
-        return "" if tokens.nil? || tokens.empty?
+        return '' if tokens.nil? || tokens.empty?
 
         tokens.map(&:chr).join
       end

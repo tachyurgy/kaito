@@ -7,6 +7,9 @@ module Kaito
   # @attr_reader metadata [Hash] metadata about the chunk
   # @attr_reader token_count [Integer] number of tokens in the chunk
   class Chunk
+    # Maximum characters to display in inspect output
+    INSPECT_TEXT_PREVIEW_LENGTH = 50
+
     attr_reader :text, :metadata, :token_count
 
     # Create a new chunk
@@ -80,7 +83,8 @@ module Kaito
     # Detailed inspection
     # @return [String]
     def inspect
-      "#<Kaito::Chunk text=#{text[0..50].inspect}... tokens=#{token_count} metadata=#{metadata.inspect}>"
+      preview = text[0..INSPECT_TEXT_PREVIEW_LENGTH]
+      "#<Kaito::Chunk text=#{preview.inspect}... tokens=#{token_count} metadata=#{metadata.inspect}>"
     end
 
     # Check if two chunks are equal

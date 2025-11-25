@@ -1,0 +1,166 @@
+name: Publish Gem
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  verify:
+    name: Verify Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify tag matches version
+        run: |
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          GEM_VERSION=$(ruby -r ./lib/kaito/version.rb -e "puts Kaito::VERSION")
+
+          if [ "$TAG_VERSION" != "$GEM_VERSION" ]; then
+            echo "Error: Tag version (v${TAG_VERSION}) does not match gem version (${GEM_VERSION})"
+            exit 1
+          fi
+
+          echo "Version verified: ${GEM_VERSION}"
+
+  test:
+    name: Run Full Test Suite
+    needs: verify
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby-version: ['3.0', '3.1', '3.2', '3.3']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+          bundler-cache: true
+
+      - name: Install dependencies
+        run: bundle install --jobs 4 --retry 3
+
+      - name: Run RSpec tests
+        run: bundle exec rspec
+
+      - name: Run RuboCop
+        run: bundle exec rubocop
+
+      - name: Run bundler-audit
+        run: |
+          gem install bundler-audit
+          bundle audit --update
+          bundle audit check
+
+  build:
+    name: Build and Publish Gem
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+
+      - name: Build gem
+        run: |
+          gem build kaito.gemspec
+          echo "GEM_FILE=$(ls kaito-*.gem)" >> $GITHUB_ENV
+
+      - name: Verify gem contents
+        run: |
+          gem spec ${{ env.GEM_FILE }} --ruby | head -n 20
+          echo "---"
+          echo "Files in gem:"
+          tar -tzf ${{ env.GEM_FILE }} | grep -v "\.gz$" | head -n 50
+
+      - name: Test gem installation
+        run: |
+          gem install ${{ env.GEM_FILE }}
+          kaito version
+
+      - name: Publish to RubyGems
+        env:
+          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+        run: |
+          mkdir -p ~/.gem
+          echo "---" > ~/.gem/credentials
+          echo ":rubygems_api_key: ${GEM_HOST_API_KEY}" >> ~/.gem/credentials
+          chmod 0600 ~/.gem/credentials
+          gem push ${{ env.GEM_FILE }}
+
+      - name: Upload gem artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kaito-gem-release
+          path: kaito-*.gem
+          retention-days: 90
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download gem artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: kaito-gem-release
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Extract changelog
+        id: changelog
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+
+          # Extract changelog section for this version
+          CHANGELOG=$(awk "/## \[${VERSION}\]/,/## \[/" CHANGELOG.md | sed '$d' | tail -n +2)
+
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="Release version ${VERSION}"
+          fi
+
+          # Save to file for multiline handling
+          echo "$CHANGELOG" > release_notes.md
+          echo "Release notes extracted for version ${VERSION}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release v${{ steps.version.outputs.version }}
+          body_path: release_notes.md
+          files: kaito-*.gem
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Announce release
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          echo "🎉 Successfully released Kaito v${VERSION} to RubyGems!"
+          echo "📦 Gem: https://rubygems.org/gems/kaito/versions/${VERSION}"
+          echo "📝 Release: https://github.com/${{ github.repository }}/releases/tag/v${VERSION}"

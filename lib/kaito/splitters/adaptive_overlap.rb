@@ -5,6 +5,9 @@ module Kaito
     # Adaptive overlap splitter that intelligently determines overlap
     # based on content similarity and semantic boundaries
     class AdaptiveOverlap < Base
+      # Number of characters from next chunk to use for similarity comparison
+      SIMILARITY_PREVIEW_LENGTH = 200
+
       attr_reader :min_overlap_tokens, :max_overlap_tokens, :similarity_threshold
 
       # Initialize an adaptive overlap splitter
@@ -28,7 +31,7 @@ module Kaito
       #
       # @param text [String] the text to split
       # @return [Array<Chunk>] array of text chunks
-      def split(text)
+      def perform_split(text)
         return [] if text.nil? || text.empty?
 
         # First, split using semantic splitter without overlap
@@ -73,18 +76,14 @@ module Kaito
           )
         end
 
-        # Re-index
-        result.each_with_index do |chunk, idx|
-          chunk.instance_variable_set(:@metadata, chunk.metadata.merge(index: idx).freeze)
-        end
-
-        result
+        # Re-index by creating new chunks with updated metadata
+        reindex_chunks(result)
       end
 
       def calculate_optimal_overlap(prev_text, current_text)
         # Try to find natural overlap point using sentences
         prev_sentences = segment_into_sentences(prev_text)
-        return "" if prev_sentences.empty?
+        return '' if prev_sentences.empty?
 
         # Start with target overlap and adjust based on content
         target_overlap = overlap_tokens
@@ -97,9 +96,7 @@ module Kaito
           sentence_tokens = tokenizer.count(sentence)
 
           # Check if adding this sentence would exceed max overlap
-          if overlap_token_count + sentence_tokens > max_overlap_tokens
-            break
-          end
+          break if overlap_token_count + sentence_tokens > max_overlap_tokens
 
           # Check if we should include this sentence based on similarity
           if should_include_in_overlap?(sentence, current_text, overlap_token_count, target_overlap)
@@ -107,41 +104,33 @@ module Kaito
             overlap_token_count += sentence_tokens
 
             # Stop if we've reached target and have good similarity
-            if overlap_token_count >= target_overlap
-              break
-            end
-          else
+            break if overlap_token_count >= target_overlap
+          elsif overlap_token_count >= min_overlap_tokens
             # If similarity is too low and we have minimum overlap, stop
-            break if overlap_token_count >= min_overlap_tokens
+            break
           end
         end
 
-        overlap_sentences.join(" ")
+        overlap_sentences.join(' ')
       end
 
       def enforce_max_tokens(overlap_text, current_text)
         # Handle empty overlap
-        if overlap_text.empty?
-          return [current_text, ""]
-        end
+        return [current_text, ''] if overlap_text.empty?
 
         # Calculate combined token count
         combined_text = "#{overlap_text} #{current_text}"
         combined_tokens = tokenizer.count(combined_text)
 
         # If within limits, return as-is
-        if combined_tokens <= max_tokens
-          return [combined_text, overlap_text]
-        end
+        return [combined_text, overlap_text] if combined_tokens <= max_tokens
 
         # Calculate how many tokens we can use for overlap
         current_tokens = tokenizer.count(current_text)
         available_overlap_tokens = max_tokens - current_tokens - 1 # -1 for the space
 
         # If no room for overlap, return just current text
-        if available_overlap_tokens <= 0
-          return [current_text, ""]
-        end
+        return [current_text, ''] if available_overlap_tokens <= 0
 
         # Trim overlap to fit
         trimmed_overlap = trim_text_to_tokens(overlap_text, available_overlap_tokens)
@@ -158,42 +147,38 @@ module Kaito
 
         sentences.each do |sentence|
           sentence_tokens = tokenizer.count(sentence)
-          if token_count + sentence_tokens <= target_tokens
-            result << sentence
-            token_count += sentence_tokens
-          else
-            break
-          end
+          break unless token_count + sentence_tokens <= target_tokens
+
+          result << sentence
+          token_count += sentence_tokens
         end
 
         # If we got nothing, do word-level trimming as fallback
-        if result.empty? && target_tokens > 0
+        if result.empty? && target_tokens.positive?
           words = text.split(/\s+/)
           result = []
           token_count = 0
 
           words.each do |word|
             word_tokens = tokenizer.count(word)
-            if token_count + word_tokens <= target_tokens
-              result << word
-              token_count += word_tokens
-            else
-              break
-            end
+            break unless token_count + word_tokens <= target_tokens
+
+            result << word
+            token_count += word_tokens
           end
 
-          return result.join(" ")
+          return result.join(' ')
         end
 
-        result.join(" ")
+        result.join(' ')
       end
 
-      def should_include_in_overlap?(sentence, next_text, current_overlap, target_overlap)
+      def should_include_in_overlap?(sentence, next_text, current_overlap, _target_overlap)
         # Always include if we're below minimum
         return true if current_overlap < min_overlap_tokens
 
         # Calculate similarity between sentence and start of next text
-        next_preview = next_text[0...200] # Look at first 200 chars of next chunk
+        next_preview = next_text[0...SIMILARITY_PREVIEW_LENGTH]
         similarity = Kaito::Utils::TextUtils.similarity(sentence, next_preview)
 
         # Include if similarity is above threshold

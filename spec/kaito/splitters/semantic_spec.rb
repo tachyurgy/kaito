@@ -3,20 +3,20 @@
 RSpec.describe Kaito::Splitters::Semantic do
   let(:splitter) { described_class.new(max_tokens: 50, tokenizer: :character) }
 
-  describe "#split" do
+  describe '#split' do
     let(:text) do
-      "This is the first sentence. This is the second sentence. " \
-      "This is the third sentence. This is the fourth sentence."
+      'This is the first sentence. This is the second sentence. ' \
+        'This is the third sentence. This is the fourth sentence.'
     end
 
-    it "splits text into chunks" do
+    it 'splits text into chunks' do
       chunks = splitter.split(text)
 
       expect(chunks).to be_an(Array)
       expect(chunks).to all(be_a(Kaito::Chunk))
     end
 
-    it "preserves sentence boundaries when possible" do
+    it 'preserves sentence boundaries when possible' do
       chunks = splitter.split(text)
 
       chunks.each do |chunk|
@@ -25,7 +25,7 @@ RSpec.describe Kaito::Splitters::Semantic do
       end
     end
 
-    it "handles paragraphs when preserve_paragraphs is true" do
+    it 'handles paragraphs when preserve_paragraphs is true' do
       splitter = described_class.new(
         max_tokens: 100,
         tokenizer: :character,
@@ -38,13 +38,13 @@ RSpec.describe Kaito::Splitters::Semantic do
       expect(chunks).not_to be_empty
     end
 
-    it "returns empty array for empty text" do
-      expect(splitter.split("")).to eq([])
+    it 'returns empty array for empty text' do
+      expect(splitter.split('')).to eq([])
       expect(splitter.split(nil)).to eq([])
     end
 
-    it "handles text with no sentence boundaries" do
-      text = "a" * 100
+    it 'handles text with no sentence boundaries' do
+      text = 'a' * 100
       chunks = splitter.split(text)
 
       expect(chunks).not_to be_empty
@@ -53,7 +53,7 @@ RSpec.describe Kaito::Splitters::Semantic do
       end
     end
 
-    it "adds metadata with segment count" do
+    it 'adds metadata with segment count' do
       chunks = splitter.split(text)
 
       chunks.each do |chunk|

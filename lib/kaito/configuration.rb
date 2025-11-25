@@ -21,14 +21,17 @@ module Kaito
     # @return [Symbol] default language for text processing
     attr_accessor :default_language
 
-    # @return [Boolean] whether to enable concurrent processing
-    attr_accessor :enable_concurrency
-
-    # @return [Integer] number of workers for concurrent processing
-    attr_accessor :concurrency_workers
-
     # @return [Boolean] whether to cache tokenization results
     attr_accessor :cache_tokenization
+
+    # @return [Logger, nil] logger instance for structured logging
+    attr_accessor :logger
+
+    # @return [Metrics, nil] metrics instance for tracking operations
+    attr_accessor :metrics
+
+    # @return [Boolean] whether to enable instrumentation
+    attr_accessor :instrumentation_enabled
 
     def initialize
       @default_tokenizer = :gpt4
@@ -37,18 +40,18 @@ module Kaito
       @default_strategy = :semantic
       @preserve_sentences = true
       @default_language = :en
-      @enable_concurrency = false
-      @concurrency_workers = 4
       @cache_tokenization = true
+      @logger = nil
+      @metrics = nil
+      @instrumentation_enabled = false
     end
 
     # Validate configuration
     # @raise [ConfigurationError] if configuration is invalid
-    def validate!
-      raise ConfigurationError, "max_tokens must be positive" if default_max_tokens <= 0
-      raise ConfigurationError, "overlap_tokens cannot be negative" if default_overlap_tokens < 0
-      raise ConfigurationError, "overlap must be less than max_tokens" if default_overlap_tokens >= default_max_tokens
-      raise ConfigurationError, "concurrency_workers must be positive" if concurrency_workers <= 0
+    def validate! # rubocop:disable Naming/PredicateMethod
+      raise ConfigurationError, 'max_tokens must be positive' if default_max_tokens <= 0
+      raise ConfigurationError, 'overlap_tokens cannot be negative' if default_overlap_tokens.negative?
+      raise ConfigurationError, 'overlap must be less than max_tokens' if default_overlap_tokens >= default_max_tokens
 
       true
     end

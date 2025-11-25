@@ -1,9 +1,15 @@
 # frozen_string_literal: true
 
 module Kaito
+  # Namespace for text splitting strategies
   module Splitters
     # Base class for all text splitters
     class Base
+      # Buffer size multiplier for file streaming
+      BUFFER_SIZE_MULTIPLIER = 2
+      # Percentage of text to consider for overlap calculation
+      OVERLAP_SEARCH_PERCENTAGE = 10
+
       attr_reader :max_tokens, :overlap_tokens, :tokenizer, :min_tokens
 
       # Initialize a splitter
@@ -27,7 +33,41 @@ module Kaito
       # @return [Array<Chunk>] array of text chunks
       # @raise [NotImplementedError] must be implemented by subclasses
       def split(text)
-        raise NotImplementedError, "#{self.class} must implement #split"
+        strategy_name = self.class.name.split('::').last.downcase.to_sym
+        text_length = text&.length || 0
+        start_time = Time.now
+
+        begin
+          result = if instrumentation_enabled?
+                    Instrumentation.instrument_split(
+                      strategy: strategy_name,
+                      text_length: text_length,
+                      max_tokens: max_tokens,
+                      overlap_tokens: overlap_tokens
+                    ) { perform_split(text) }
+                  else
+                    perform_split(text)
+                  end
+
+          duration = Time.now - start_time
+          log_split_operation(strategy_name, duration, result, text_length)
+          track_split_metrics(strategy_name, duration, result)
+
+          result
+        rescue StandardError => e
+          log_error('Split operation failed', e, strategy: strategy_name)
+          track_error('split', e)
+          raise
+        end
+      end
+
+      # Perform the actual split operation
+      # Subclasses should implement this instead of split
+      #
+      # @param text [String] the text to split
+      # @return [Array<Chunk>] array of text chunks
+      def perform_split(text)
+        raise NotImplementedError, "#{self.class} must implement #perform_split"
       end
 
       # Stream a file and split it into chunks
@@ -38,49 +78,62 @@ module Kaito
       def stream_file(file_path, &block)
         raise FileError, "File not found: #{file_path}" unless File.exist?(file_path)
 
-        enumerator = Enumerator.new do |yielder|
-          File.open(file_path, "r") do |file|
-            buffer = ""
-            chunk_index = 0
-
-            file.each_line do |line|
-              buffer += line
-
-              # Process buffer when it's large enough
-              if tokenizer.count(buffer) > max_tokens * 2
-                chunks = split(buffer)
-                chunks.each do |chunk|
-                  chunk.instance_variable_set(:@metadata, chunk.metadata.merge(
-                    index: chunk_index,
-                    source_file: file_path
-                  ).freeze)
-                  yielder << chunk
-                  chunk_index += 1
-                end
-
-                # Keep overlap for next iteration
-                buffer = chunks.last&.text || ""
-              end
-            end
-
-            # Process remaining buffer
-            unless buffer.strip.empty?
-              chunks = split(buffer)
-              chunks.each do |chunk|
-                chunk.instance_variable_set(:@metadata, chunk.metadata.merge(
-                  index: chunk_index,
-                  source_file: file_path
-                ).freeze)
-                yielder << chunk
-                chunk_index += 1
-              end
-            end
-          end
-        end
-
+        enumerator = create_file_enumerator(file_path)
         return enumerator unless block
 
         enumerator.each(&block)
+      end
+
+      private
+
+      def create_file_enumerator(file_path)
+        Enumerator.new do |yielder|
+          process_file_in_chunks(file_path, yielder)
+        end
+      end
+
+      def process_file_in_chunks(file_path, yielder)
+        File.open(file_path, 'r') do |file|
+          buffer = ''
+          chunk_index = 0
+
+          file.each_line do |line|
+            buffer += line
+            next unless should_process_buffer?(buffer)
+
+            chunks = split(buffer)
+            chunk_index = yield_chunks(chunks, yielder, chunk_index, file_path)
+            buffer = chunks.last&.text || ''
+          end
+
+          yield_remaining_buffer(buffer, yielder, chunk_index, file_path) unless buffer.strip.empty?
+        end
+      end
+
+      def should_process_buffer?(buffer)
+        tokenizer.count(buffer) > max_tokens * BUFFER_SIZE_MULTIPLIER
+      end
+
+      def yield_chunks(chunks, yielder, chunk_index, file_path)
+        chunks.each do |chunk|
+          updated_chunk = create_chunk_with_metadata(chunk, chunk_index, file_path)
+          yielder << updated_chunk
+          chunk_index += 1
+        end
+        chunk_index
+      end
+
+      def create_chunk_with_metadata(chunk, index, file_path)
+        updated_metadata = chunk.metadata.merge(
+          index: index,
+          source_file: file_path
+        )
+        Chunk.new(chunk.text, metadata: updated_metadata, token_count: chunk.token_count)
+      end
+
+      def yield_remaining_buffer(buffer, yielder, chunk_index, file_path)
+        chunks = split(buffer)
+        yield_chunks(chunks, yielder, chunk_index, file_path)
       end
 
       # Count tokens in text using the configured tokenizer
@@ -92,6 +145,20 @@ module Kaito
       end
 
       protected
+
+      # Re-index chunks by creating new chunk objects with updated index metadata
+      #
+      # @param chunks [Array<Chunk>] chunks to reindex
+      # @return [Array<Chunk>] new chunks with updated indices
+      def reindex_chunks(chunks)
+        chunks.map.with_index do |chunk, idx|
+          Chunk.new(
+            chunk.text,
+            metadata: chunk.metadata.merge(index: idx),
+            token_count: chunk.token_count
+          )
+        end
+      end
 
       # Create chunks with metadata
       #
@@ -118,36 +185,38 @@ module Kaito
       # @param position [Integer] where to split
       # @return [Array(String, String)] two parts of the split
       def split_with_overlap(text, position)
-        # Calculate overlap position
-        overlap_text = ""
-        if overlap_tokens > 0 && position > 0
-          # Try to get overlap_tokens worth of text before the split
-          overlap_start = [0, position - (text.length / 10)].max # Rough estimate
-          overlap_candidate = text[overlap_start...position]
-
-          # Binary search for exact overlap amount
-          if tokenizer.count(overlap_candidate) > overlap_tokens
-            min_pos = overlap_start
-            max_pos = position
-            while min_pos < max_pos
-              mid = (min_pos + max_pos) / 2
-              candidate = text[mid...position]
-              if tokenizer.count(candidate) <= overlap_tokens
-                overlap_text = candidate
-                min_pos = mid + 1
-              else
-                max_pos = mid
-              end
-            end
-          else
-            overlap_text = overlap_candidate
-          end
-        end
-
+        overlap_text = calculate_overlap_text(text, position)
         first_part = text[0...position]
-        second_part = overlap_text + text[position..-1]
+        second_part = overlap_text + text[position..]
 
         [first_part, second_part]
+      end
+
+      def calculate_overlap_text(text, position)
+        return '' unless overlap_tokens.positive? && position.positive?
+
+        overlap_start = [0, position - (text.length / OVERLAP_SEARCH_PERCENTAGE)].max
+        overlap_candidate = text[overlap_start...position]
+
+        return overlap_candidate if tokenizer.count(overlap_candidate) <= overlap_tokens
+
+        binary_search_overlap(text, overlap_start, position)
+      end
+
+      def binary_search_overlap(text, min_pos, max_pos)
+        overlap_text = ''
+        while min_pos < max_pos
+          mid = (min_pos + max_pos) / 2
+          candidate = text[mid...max_pos]
+
+          if tokenizer.count(candidate) <= overlap_tokens
+            overlap_text = candidate
+            min_pos = mid + 1
+          else
+            max_pos = mid
+          end
+        end
+        overlap_text
       end
 
       private
@@ -156,20 +225,72 @@ module Kaito
         return tokenizer_spec if tokenizer_spec.is_a?(Tokenizers::Base)
 
         case tokenizer_spec
-        when :gpt35_turbo, :gpt4, :gpt4_turbo, :claude
+        when :gpt35_turbo, :gpt4, :gpt4_turbo
           Tokenizers::Tiktoken.new(model: tokenizer_spec)
         when :character
           Tokenizers::Character.new
         else
-          raise ArgumentError, "Unknown tokenizer: #{tokenizer_spec}"
+          raise ArgumentError, "Unknown tokenizer: #{tokenizer_spec}. Supported: :gpt35_turbo, :gpt4, :gpt4_turbo, :character"
         end
       end
 
       def validate_parameters!
-        raise ArgumentError, "max_tokens must be positive" if max_tokens <= 0
-        raise ArgumentError, "overlap_tokens cannot be negative" if overlap_tokens < 0
-        raise ArgumentError, "overlap_tokens must be less than max_tokens" if overlap_tokens >= max_tokens
-        raise ArgumentError, "min_tokens cannot be negative" if min_tokens < 0
+        raise ArgumentError, 'max_tokens must be positive' if max_tokens <= 0
+        raise ArgumentError, 'overlap_tokens cannot be negative' if overlap_tokens.negative?
+        raise ArgumentError, 'overlap_tokens must be less than max_tokens' if overlap_tokens >= max_tokens
+        raise ArgumentError, 'min_tokens cannot be negative' if min_tokens.negative?
+      end
+
+      # Observability helpers
+
+      def instrumentation_enabled?
+        Kaito.configuration&.instrumentation_enabled && Instrumentation.enabled?
+      end
+
+      def logger
+        Kaito.configuration&.logger
+      end
+
+      def metrics
+        Kaito.configuration&.metrics
+      end
+
+      def log_split_operation(strategy, duration, result, text_length)
+        return unless logger
+
+        logger.log_split(
+          strategy: strategy,
+          duration: duration,
+          chunks: result.size,
+          tokens_processed: result.sum(&:token_count),
+          text_length: text_length
+        )
+      end
+
+      def track_split_metrics(strategy, duration, result)
+        return unless metrics
+
+        metrics.track_split(
+          strategy: strategy,
+          duration: duration,
+          chunks: result.size,
+          tokens: result.sum(&:token_count)
+        )
+      end
+
+      def log_error(message, error, **metadata)
+        return unless logger
+
+        logger.log_error(message, error: error, **metadata)
+      end
+
+      def track_error(operation, error)
+        return unless metrics
+
+        metrics.track_error(
+          operation: operation,
+          error_type: error.class.name
+        )
       end
     end
   end

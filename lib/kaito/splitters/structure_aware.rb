@@ -25,7 +25,7 @@ module Kaito
       #
       # @param text [String] the text to split
       # @return [Array<Chunk>] array of text chunks
-      def split(text)
+      def perform_split(text)
         return [] if text.nil? || text.empty?
 
         if Kaito::Utils::TextUtils.markdown?(text)
@@ -55,47 +55,47 @@ module Kaito
         lines = text.split("\n")
 
         lines.each_with_index do |line, index|
-          # Match markdown headers (1-6 # characters)
           if (match = line.match(/^(\#{1,6})\s+(.+)$/))
-            # Header found
-            level = match[1].length
-            header_text = match[2]
-
-            # Save previous section if it has content
-            unless current_section[:content].empty? && current_section[:header].nil?
-              current_section[:content] = current_section[:content].join("\n")
-              sections << current_section
-            end
-
-            # Start new section
-            current_section = {
-              header: header_text,
-              level: level,
-              content: [],
-              start_line: index
-            }
-          elsif preserve_code_blocks && line.start_with?("```")
-            # Code block boundary
-            current_section[:content] << line
-            # Continue collecting until closing ```
-            index += 1
-            while index < lines.length && !lines[index].start_with?("```")
-              current_section[:content] << lines[index]
-              index += 1
-            end
-            current_section[:content] << lines[index] if index < lines.length
+            sections = finalize_and_add_section(sections, current_section)
+            current_section = start_new_section(match, index)
+          elsif preserve_code_blocks && line.start_with?('```')
+            current_section = process_code_block(lines, index, current_section)
           else
             current_section[:content] << line
           end
         end
 
-        # Add final section
-        unless current_section[:content].empty? && current_section[:header].nil?
-          current_section[:content] = current_section[:content].join("\n")
-          sections << current_section
+        finalize_and_add_section(sections, current_section)
+      end
+
+      def start_new_section(match, index)
+        {
+          header: match[2],
+          level: match[1].length,
+          content: [],
+          start_line: index
+        }
+      end
+
+      def finalize_and_add_section(sections, section)
+        return sections if section[:content].empty? && section[:header].nil?
+
+        section[:content] = section[:content].join("\n")
+        sections << section
+        sections
+      end
+
+      def process_code_block(lines, start_index, current_section)
+        current_section[:content] << lines[start_index]
+        index = start_index + 1
+
+        while index < lines.length && !lines[index].start_with?('```')
+          current_section[:content] << lines[index]
+          index += 1
         end
 
-        sections
+        current_section[:content] << lines[index] if index < lines.length
+        current_section
       end
 
       def combine_sections(sections)
@@ -109,53 +109,55 @@ module Kaito
           section_text = format_section(section)
           section_tokens = tokenizer.count(section_text)
 
-          # If single section exceeds max_tokens, split it
           if section_tokens > max_tokens
-            # Flush current group first
-            unless current_group.empty?
-              chunks << create_chunk_from_sections(current_group, chunks.length)
-              current_group = []
-              current_tokens = 0
-            end
-
-            # Split the large section
-            split_large_section(section).each do |chunk|
-              chunks << chunk
-            end
+            chunks, current_group, current_tokens = handle_oversized_section(
+              section, chunks, current_group, current_tokens
+            )
             next
           end
 
-          # Check if adding this section would exceed max_tokens
-          if current_tokens + section_tokens > max_tokens && !current_group.empty?
-            # Create chunk from current group
-            chunks << create_chunk_from_sections(current_group, chunks.length)
-
-            # Handle overlap
-            if overlap_tokens > 0
-              overlap_group = calculate_overlap_sections(current_group)
-              current_group = overlap_group
-              current_tokens = current_group.sum { |s| tokenizer.count(format_section(s)) }
-            else
-              current_group = []
-              current_tokens = 0
-            end
+          if should_flush_current_group?(current_tokens, section_tokens, current_group)
+            chunks, current_group, current_tokens = flush_and_overlap(chunks, current_group)
           end
 
           current_group << section
           current_tokens += section_tokens
         end
 
-        # Add final chunk
+        chunks << create_chunk_from_sections(current_group, chunks.length) unless current_group.empty?
+        chunks
+      end
+
+      def handle_oversized_section(section, chunks, current_group, current_tokens)
         unless current_group.empty?
           chunks << create_chunk_from_sections(current_group, chunks.length)
+          current_group = []
+          current_tokens = 0
         end
 
-        chunks
+        split_large_section(section).each { |chunk| chunks << chunk }
+        [chunks, current_group, current_tokens]
+      end
+
+      def should_flush_current_group?(current_tokens, section_tokens, current_group)
+        (current_tokens + section_tokens > max_tokens) && !current_group.empty?
+      end
+
+      def flush_and_overlap(chunks, current_group)
+        chunks << create_chunk_from_sections(current_group, chunks.length)
+
+        if overlap_tokens.positive?
+          overlap_group = calculate_overlap_sections(current_group)
+          current_tokens = overlap_group.sum { |s| tokenizer.count(format_section(s)) }
+          [chunks, overlap_group, current_tokens]
+        else
+          [chunks, [], 0]
+        end
       end
 
       def format_section(section)
         if section[:header]
-          header = "#" * section[:level] + " " + section[:header]
+          header = "#{'#' * section[:level]} #{section[:header]}"
           "#{header}\n\n#{section[:content]}"
         else
           section[:content]
@@ -178,7 +180,7 @@ module Kaito
       end
 
       def calculate_overlap_sections(sections)
-        return [] if overlap_tokens == 0 || sections.empty?
+        return [] if overlap_tokens.zero? || sections.empty?
 
         overlap_secs = []
         tokens = 0
@@ -187,19 +189,17 @@ module Kaito
           section_text = format_section(section)
           section_tokens = tokenizer.count(section_text)
 
-          if tokens + section_tokens <= overlap_tokens
-            overlap_secs.unshift(section)
-            tokens += section_tokens
-          else
-            break
-          end
+          break unless tokens + section_tokens <= overlap_tokens
+
+          overlap_secs.unshift(section)
+          tokens += section_tokens
         end
 
         overlap_secs
       end
 
       def split_large_section(section)
-        text = format_section(section)
+        format_section(section)
 
         # Use semantic splitter for large sections
         semantic_splitter = Splitters::Semantic.new(
@@ -268,12 +268,8 @@ module Kaito
           all_chunks.concat(chunks)
         end
 
-        # Re-index chunks
-        all_chunks.each_with_index do |chunk, idx|
-          chunk.instance_variable_set(:@metadata, chunk.metadata.merge(index: idx).freeze)
-        end
-
-        all_chunks
+        # Re-index chunks by creating new chunk objects
+        reindex_chunks(all_chunks)
       end
     end
   end
