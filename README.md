@@ -1,8 +1,8 @@
 # Kaito
 
-[![CI](https://github.com/codeRailroad/kaito/actions/workflows/ci.yml/badge.svg)](https://github.com/codeRailroad/kaito/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/codeRailroad/kaito/branch/main/graph/badge.svg)](https://codecov.io/gh/codeRailroad/kaito)
-[![Gem Version](https://badge.fury.io/rb/kaito.svg)](https://badge.fury.io/rb/kaito)
+[![CI](https://github.com/tachyurgy/kaito/actions/workflows/ci.yml/badge.svg)](https://github.com/tachyurgy/kaito/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/tachyurgy/kaito/branch/main/graph/badge.svg)](https://codecov.io/gh/tachyurgy/kaito)
+[![Gem Version](https://img.shields.io/gem/v/kaito.svg)](https://rubygems.org/gems/kaito)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 <!-- ✅ FIXED: Rewritten to be purely technical, removed marketing language -->
@@ -621,7 +621,7 @@ recursive         0.038s    120       425
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/codeRailroad/kaito.
+Bug reports and pull requests are welcome on GitHub at https://github.com/tachyurgy/kaito.
 
 1. Fork it
 2. Create your feature branch (`git checkout -b my-new-feature`)
